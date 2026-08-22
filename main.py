@@ -14,14 +14,16 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 import uuid
+from collections import defaultdict, deque
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Deque
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (
-    FileResponse, HTMLResponse, JSONResponse, StreamingResponse,
+    FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse,
 )
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
@@ -42,7 +44,79 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="1.1.0")
+app = FastAPI(title="Exam Mitra 📚", version="1.2.0")
+
+# ---------- Security middleware ----------
+
+# Simple in-memory rate limiter (resets on cold-start; fine for a single Cloud Run instance)
+_RATE_LIMITS = {
+    "/api/start": (5, 60),        # 5 plans per minute per IP
+    "/api/jobs/":  (60, 60),      # 60 reads/min
+    "/api/health": (120, 60),
+}
+_rate_buckets: Dict[str, Dict[str, Deque[float]]] = defaultdict(lambda: defaultdict(deque))
+
+
+def _client_ip(request: Request) -> str:
+    # Cloud Run sets X-Forwarded-For
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limited(ip: str, path: str) -> bool:
+    for prefix, (max_hits, window) in _RATE_LIMITS.items():
+        if path.startswith(prefix):
+            bucket = _rate_buckets[ip][prefix]
+            now = time.monotonic()
+            while bucket and now - bucket[0] > window:
+                bucket.popleft()
+            if len(bucket) >= max_hits:
+                return True
+            bucket.append(now)
+            return False
+    return False
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    ip = _client_ip(request)
+    # Rate limit
+    if _rate_limited(ip, request.url.path):
+        return JSONResponse({"error": "Too many requests. Please slow down."}, status_code=429)
+
+    # Process request
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        # Never leak stack traces to users
+        logger.exception("Unhandled error on %s: %s", request.url.path, exc)
+        return JSONResponse(
+            {"error": "Internal server error", "detail": "Something went wrong. Please try again."},
+            status_code=500,
+        )
+
+    # Security headers (effective on HTML/API responses)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    # Only enable HSTS in production (cloud)
+    if settings.is_cloud:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    # CSP: lock down to own origin + YouTube (for resource links) + Google Fonts
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "  # inline JS for vanilla app (no build step)
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'",
+    )
+    return response
 
 # ---------- In-memory job queues & SSE subscribers ----------
 
@@ -52,6 +126,8 @@ running_jobs: Dict[str, StudyPlanState] = {}
 job_subscribers: Dict[str, List[asyncio.Queue]] = {}
 # Background tasks
 job_tasks: Dict[str, asyncio.Task] = {}
+# Track which IP owns which job (for per-IP concurrency limit)
+job_owner_ip: Dict[str, str] = {}
 
 
 # ---------- Request models ----------
@@ -142,6 +218,7 @@ async def run_pipeline_async(job_id: str, state: StudyPlanState):
     finally:
         running_jobs.pop(job_id, None)
         job_tasks.pop(job_id, None)
+        job_owner_ip.pop(job_id, None)
         # Close subscriber queues after a short delay so last events are delivered
         await asyncio.sleep(2)
         for q in job_subscribers.pop(job_id, []):
@@ -165,8 +242,15 @@ def health():
 
 
 @app.post("/api/start")
-async def start_job(req: StartRequest):
+async def start_job(req: StartRequest, request: Request):
     """Start a new study plan generation job. Returns immediately with job_id."""
+    ip = _client_ip(request)
+    # Limit concurrent expensive generations per IP to 2 (prevent quota-burning)
+    active_for_ip = sum(1 for jid, j in running_jobs.items()
+                        if job_owner_ip.get(jid) == ip and not j.error)
+    if active_for_ip >= 2:
+        raise HTTPException(429, "You already have a plan generating. Please wait for it to finish.")
+
     job_id = uuid.uuid4().hex[:10]
     start_date = None
     if req.start_date:
@@ -186,6 +270,7 @@ async def start_job(req: StartRequest):
     store.save(state)
     running_jobs[job_id] = state
     job_subscribers[job_id] = []
+    job_owner_ip[job_id] = ip
 
     # Launch pipeline in background
     task = asyncio.create_task(run_pipeline_async(job_id, state))

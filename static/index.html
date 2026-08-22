@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Exam Mitra 📚 — Your AI Study Companion</title>
+<meta name="description" content="Exam Mitra — paste your competitive exam syllabus, get a complete day-by-day study plan with notes, flashcards, MCQs, and free video lectures from top Indian educators in under 2 minutes. Built for JEE, NEET, UPSC aspirants." />
+<title>Exam Mitra 📚 — AI Study Planner for JEE, NEET, UPSC</title>
 <link rel="stylesheet" href="/static/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,23 +14,51 @@
 <header class="hero">
   <nav class="nav">
     <div class="logo"><span class="logo-icon">📚</span> Exam Mitra</div>
-    <div class="badge">All Things Agentic Hackathon · Google Cloud</div>
+    <div class="badge">🤖 Autonomous AI Agent · Google ADK + Gemini</div>
   </nav>
   <div class="hero-inner">
+    <div class="pill">🏆 For JEE · NEET · UPSC · SSC · GATE · CBSE students</div>
     <h1>Paste your syllabus.<br/><span class="accent">Get a complete study plan in under 2 minutes.</span></h1>
-    <p class="subtitle">Exam Mitra is an autonomous AI agent built on <b>Google ADK</b> + <b>Gemini 3.5 Flash</b> + <b>Cloud Run</b> + <b>Firestore</b>. It parses your syllabus, builds a day-by-day plan, finds free YouTube lectures from top Indian educators, writes revision notes, creates flashcards, and generates practice MCQs — all without you typing a second prompt.</p>
+    <p class="subtitle">Exam Mitra is an autonomous AI agent — not a chatbot. It parses your syllabus, builds a day-by-day schedule with revision days, finds free YouTube lectures from top Indian educators (Physics Wallah, Khan Academy, Vedantu, Mohit Tyagi), writes formula-dense revision notes, creates active-recall flashcards, and generates exam-style MCQs with detailed explanations. <b>One click. Zero follow-up prompts.</b></p>
     <div class="hero-stats">
-      <div><div class="stat-num">7</div><div class="stat-label">autonomous<br/>steps</div></div>
+      <div><div class="stat-num">7</div><div class="stat-label">autonomous<br/>AI steps</div></div>
       <div><div class="stat-num">0</div><div class="stat-label">chat turns<br/>needed</div></div>
-      <div><div class="stat-num">100%</div><div class="stat-label">free &amp;<br/>open source</div></div>
+      <div><div class="stat-num">100%</div><div class="stat-label">free<br/>to use</div></div>
     </div>
+    <a href="#generator" class="cta-jump">▼ Try it now</a>
   </div>
 </header>
 
 <main class="container">
-  <section id="form-section" class="card">
+
+  <!-- How it works -->
+  <section class="how-section">
+    <h2 class="section-title">How it works — one click, seven agents</h2>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-num">1</div><h4>Parse syllabus</h4><p>Intelligently splits your input into logical chapters — single topics stay as one, multi-topic syllabi are grouped smartly.</p></div>
+      <div class="how-card"><div class="how-num">2</div><h4>Build day plan</h4><p>Allocates days based on exam weightage and daily hours, with built-in revision + PYQ practice days every 5-6 days.</p></div>
+      <div class="how-card"><div class="how-num">3</div><h4>Find resources</h4><p>Curated free lectures from Physics Wallah, Khan Academy, Vedantu, Mohit Tyagi, NPTEL — with DuckDuckGo + Google Search as backup.</p></div>
+      <div class="how-card"><div class="how-num">4</div><h4>Write notes</h4><p>Revision notes with 8-12 key concepts, 6-15 formulas (with units!), common student mistakes, and an exam-focused summary.</p></div>
+      <div class="how-card"><div class="how-num">5</div><h4>Make flashcards</h4><p>5-8 active-recall cards per chapter mixing formula recall (easy), concept checks (medium), and tricky sign/misconception questions (hard).</p></div>
+      <div class="how-card"><div class="how-num">6</div><h4>Generate MCQs</h4><p>4 exam-style questions per chapter with plausible distractors from real student errors — every answer has a 3-5 sentence explanation.</p></div>
+      <div class="how-card how-card-accent"><div class="how-num">7</div><h4>Grade & diagnose</h4><p>After you practice, an agent grades your answers and pinpoints weak areas with specific chapter-level feedback.</p></div>
+    </div>
+  </section>
+
+  <!-- Generator form -->
+  <section id="generator" class="card">
     <h2>🚀 Generate your study package</h2>
     <p class="hint">Tell us what you're preparing for. Exam Mitra handles the rest.</p>
+
+    <div class="presets">
+      <b>Quick start:</b>
+      <button type="button" class="preset-chip" data-exam="JEE Mains Physics" data-hours="5" data-syllabus="Kinematics, Laws of Motion, Work Energy Power, Rotational Motion, Gravitation, Thermodynamics, Electrostatics, Current Electricity, Magnetism, EMI, Optics, Modern Physics">⚡ JEE Mains Physics</button>
+      <button type="button" class="preset-chip" data-exam="NEET Biology" data-hours="5" data-syllabus="Cell Biology, Human Physiology (Digestion & Absorption; Breathing; Body Fluids; Excretory; Locomotion; Neural Control; Chemical Coordination), Plant Physiology, Genetics & Evolution, Human Reproduction, Reproductive Health, Ecology">🧬 NEET Biology</button>
+      <button type="button" class="preset-chip" data-exam="JEE Mains Maths" data-hours="4" data-syllabus="Sets Relations Functions, Complex Numbers Quadratic Equations, Matrices Determinants, Permutations Combinations, Binomial Theorem, Sequences Series, Trigonometry, Straight Lines Conic Sections, Limits Continuity Differentiability, Integral Calculus, Differential Equations, Vectors 3D Geometry, Probability Statistics">📐 JEE Maths</button>
+      <button type="button" class="preset-chip" data-exam="UPSC Prelims GS Paper 1" data-hours="6" data-syllabus="Indian Polity (Constitution, Parliament, Judiciary, Panchayati Raj), Indian Economy (Planning, Budget, RBI, Agriculture, Industry), Modern Indian History (1857-1947), Indian Geography (Physical, Economic, Social), Environment & Ecology, General Science, Current Affairs (last 1 year)">🏛️ UPSC GS</button>
+      <button type="button" class="preset-chip" data-exam="JEE Mains Physics" data-hours="4" data-syllabus="Kinematics">🎯 Just Kinematics</button>
+    </div>
+
     <form id="plan-form">
       <div class="grid-2">
         <label>
@@ -57,20 +86,19 @@
       </div>
       <label>
         <span>Syllabus / topics</span>
-        <textarea id="syllabus" rows="8" placeholder="Paste the full syllabus, or just the topics you want to cover. For example:
-
-JEE Mains Physics — Units, Dimensions & Measurements; Kinematics (1D, 2D, projectile); Laws of Motion; Work, Energy, Power; Rotational Motion; Gravitation; Properties of Solids & Liquids; Thermodynamics; Kinetic Theory of Gases; Oscillations & Waves; Electrostatics; Current Electricity; Magnetic Effects of Current & Magnetism; EMI & AC; EM Waves; Optics (Ray + Wave); Dual Nature of Matter; Atoms & Nuclei; Electronic Devices; Communication Systems." required></textarea>
+        <textarea id="syllabus" rows="8" placeholder="Paste the full syllabus, or just the topics you want to cover — one topic, a chapter list, or an entire exam syllabus. Works with anything from a single topic ('Kinematics') to a 50-topic full syllabus." required></textarea>
       </label>
       <button type="submit" id="submit-btn" class="btn-primary">
         <span class="btn-text">✨ Generate my study plan</span>
       </button>
+      <p class="fine-print">🔒 Your inputs stay on the server; results visible only to you and anyone you share the link with. Generation takes ~30-90 seconds depending on syllabus size.</p>
     </form>
   </section>
 
   <!-- Progress -->
   <section id="progress-section" class="card hidden">
     <h2>🔄 Building your plan…</h2>
-    <p class="hint">The 7-step agent pipeline is running on Google Cloud. Please don't close this tab.</p>
+    <p class="hint">The 7-step agent pipeline is running. Please don't close this tab — we'll send you live updates as each agent completes its task.</p>
     <div class="steps" id="steps-list"></div>
   </section>
 
@@ -79,7 +107,7 @@ JEE Mains Physics — Units, Dimensions & Measurements; Kinematics (1D, 2D, proj
 </main>
 
 <footer>
-  <p>Built with ❤️ for the <a href="https://allthingsagentichackathon.devpost.com/" target="_blank">Google Cloud All Things Agentic Hackathon 2026</a> · Open source (MIT) · Powered by Google ADK + Gemini</p>
+  <p>Built with ❤️ for the <a href="https://allthingsagentichackathon.devpost.com/" target="_blank" rel="noopener">Google Cloud All Things Agentic Hackathon 2026</a> · Open source · Powered by <b>Google ADK</b> + <b>Gemini 3.5 Flash</b> + <b>Cloud Run</b> + <b>Firestore</b></p>
 </footer>
 
 <script src="/static/app.js"></script>

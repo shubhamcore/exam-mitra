@@ -327,6 +327,25 @@ function renderResults(jobId, j) {
   resultsSection.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
+// ---- Preset chips: one-click form fill ----
+document.querySelectorAll(".preset-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const exam = chip.dataset.exam;
+    const hours = chip.dataset.hours;
+    const syllabus = chip.dataset.syllabus;
+    if (exam) $("#exam").value = exam;
+    if (hours) $("#hours").value = hours;
+    if (syllabus) $("#syllabus").value = syllabus;
+    // Visual feedback
+    document.querySelectorAll(".preset-chip").forEach(c => c.style.outline = "");
+    chip.style.outline = "2px solid var(--accent)";
+    chip.style.outlineOffset = "2px";
+    $("#syllabus").focus();
+    // Smooth scroll to form
+    document.getElementById("plan-form").scrollIntoView({behavior:"smooth", block:"center"});
+  });
+});
+
 // ---- On page load: if ?job=XXX in URL, poll/stream for that job ----
 window.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(location.search);
