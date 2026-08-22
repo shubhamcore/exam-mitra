@@ -302,11 +302,57 @@ textarea { resize: vertical; min-height: 160px; font-family: 'JetBrains Mono', '
 
 .day-row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  transition: opacity .2s;
 }
 .day-row:last-child { border-bottom: none; }
+.day-row.day-done { opacity: 0.55; }
+.day-row.day-done .day-body h4 { text-decoration: line-through; color: var(--muted); }
+
+.day-check {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 4px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+}
+.day-check input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+.checkmark {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  transition: all .15s;
+}
+.day-check:hover .checkmark { border-color: var(--accent); }
+.day-check input:checked ~ .checkmark {
+  background: var(--success);
+  border-color: var(--success);
+}
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.day-check input:checked ~ .checkmark:after { display: block; }
 .day-badge {
   flex-shrink: 0;
   width: 56px;

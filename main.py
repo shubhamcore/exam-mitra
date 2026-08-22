@@ -286,6 +286,13 @@ def get_job(job_id: str):
     if not state:
         raise HTTPException(404, "Job not found")
 
+    # Detect stale jobs (marked processing but not in running_jobs → server restarted mid-pipeline)
+    is_running = job_id in running_jobs
+    if not is_running and state.current_step < 7 and not state.error:
+        state.error = ("This job was interrupted by a server restart. "
+                       "Please generate a new plan — results take ~30-90 seconds.")
+        store.save(state)
+
     resp = {
         "job_id": job_id,
         "status": "error" if state.error else ("complete" if state.current_step >= 7 else "processing"),
@@ -327,6 +334,16 @@ async def stream_job(job_id: str):
         q: asyncio.Queue = asyncio.Queue(maxsize=32)
         job_subscribers.setdefault(job_id, []).append(q)
         try:
+            # Detect stale jobs (not running + not complete + no error marked yet)
+            is_running = job_id in running_jobs
+            if not is_running and state.current_step < 7:
+                state.error = ("This job was interrupted by a server restart. "
+                               "Please generate a new plan — results take ~30-90 seconds.")
+                store.save(state)
+                yield f"data: {json.dumps({'event':'error','step':state.current_step,'message':state.error})}\n\n"
+                yield f"data: {json.dumps({'event':'close'})}\n\n"
+                return
+
             # Send initial state
             initial = {
                 "event": "init",
@@ -338,12 +355,17 @@ async def stream_job(job_id: str):
                 "notes": len(state.notes),
                 "flashcards": len(state.flashcards),
                 "mcqs": len(state.mcqs),
-                "status": "complete" if state.current_step >= 7 else "processing",
+                "status": "complete" if state.current_step >= 7 else (
+                    "error" if state.error else "processing"),
             }
             yield f"data: {json.dumps(initial)}\n\n"
 
-            # If already complete, close immediately
+            # If already complete or errored, close immediately
             if state.current_step >= 7 and not state.error:
+                yield f"data: {json.dumps({'event':'close'})}\n\n"
+                return
+            if state.error:
+                yield f"data: {json.dumps({'event':'error','step':state.current_step,'message':state.error})}\n\n"
                 yield f"data: {json.dumps({'event':'close'})}\n\n"
                 return
 
@@ -437,6 +459,28 @@ async def shareable_plan(request: Request, plan_id: str):
         mcqs=state.mcqs,
     )
     html = _render_plan(pkg, plan_id)
+    return HTMLResponse(html)
+
+
+@app.get("/plan/{plan_id}/print", response_class=HTMLResponse)
+def printable_plan(request: Request, plan_id: str):
+    """Printer-friendly version — users can Ctrl+P or Save as PDF."""
+    state = store.get(plan_id)
+    if not state or state.current_step < 7:
+        return HTMLResponse("<h1>Plan not found</h1>", status_code=404)
+    pkg = StudyPackage(
+        exam=state.exam,
+        total_chapters=len(state.chapters),
+        total_days=len(state.daily_plan),
+        total_hours=sum(d.hours for d in state.daily_plan),
+        daily_plan=state.daily_plan,
+        resources=state.resources,
+        notes=state.notes,
+        flashcards=state.flashcards,
+        mcqs=state.mcqs,
+    )
+    tmpl = _jinja_env.get_template("print.html")
+    html = tmpl.render(pkg=pkg, plan_id=plan_id)
     return HTMLResponse(html)
 
 

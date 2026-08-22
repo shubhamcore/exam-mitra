@@ -68,9 +68,20 @@ function connectSSE(jobId) {
           resolve();
         } else if (data.event === "error") {
           es.close();
-          alert("Something went wrong: " + data.message);
+          progressSection.classList.add("hidden");
+          const errMsg = (data.message || "").includes("interrupted")
+            ? "This job was from an older server session. Please generate a new plan."
+            : ("Something went wrong: " + (data.message || "Unknown error"));
+          resultsSection.classList.remove("hidden");
+          resultsSection.innerHTML = `<div class="card" style="border-left:4px solid #ef4444;background:#fef2f2">
+            <h3 style="margin:0 0 6px;color:#991b1b">⚠️ Generation failed</h3>
+            <p style="margin:0;color:#7f1d1d">${esc(errMsg)}</p>
+            <button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Try again</button>
+          </div>`;
           resetForm();
-          reject(new Error(data.message));
+          // Don't reject for stale jobs — the page is already showing error message
+          if (!errMsg.includes("older server session")) reject(new Error(data.message));
+          else resolve();
         } else if (data.event === "close") {
           es.close();
         }
@@ -165,7 +176,13 @@ function renderResults(jobId, j) {
   ];
   const tabsHtml = TABS.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-tab="${t.id}">${t.label}</button>`).join("");
 
+  // Load/save completed days in localStorage (survives page reloads)
+  const PROGRESS_KEY = `examm_progress_${jobId}`;
+  const completed = new Set(JSON.parse(localStorage.getItem(PROGRESS_KEY) || "[]"));
+
   // Overview
+  const completedCount = [...completed].filter(d => parseInt(d) <= pkg.total_days).length;
+  const pct = pkg.total_days ? Math.round(completedCount / pkg.total_days * 100) : 0;
   const overviewHtml = `
     <div style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-radius:12px;padding:18px 20px;margin-bottom:16px">
       <h3 style="margin:0 0 6px;color:#065f46">🎉 Your personalized study package is ready</h3>
@@ -174,21 +191,47 @@ function renderResults(jobId, j) {
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <button id="copy-link" class="btn-primary" style="width:auto;padding:10px 18px;font-size:14px">🔗 Copy shareable link</button>
       <a href="/plan/${jobId}" target="_blank" style="padding:10px 18px;border:1.5px solid var(--accent);color:var(--accent);border-radius:12px;text-decoration:none;font-weight:600;font-size:14px">📖 Open shareable page</a>
+      <a href="/plan/${jobId}/print" target="_blank" style="padding:10px 18px;border:1.5px solid #f59e0b;color:#b45309;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px">📄 Download / Print PDF</a>
     </div>
-    <div class="chapter-card"><b>Exam:</b> ${esc(pkg.exam)}</div>
+    <div class="chapter-card">
+      <b>Exam:</b> ${esc(pkg.exam)}
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <b>📊 Progress</b>
+          <span>${completedCount}/${pkg.total_days} days completed (${pct}%)</span>
+        </div>
+        <div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden">
+          <div id="overview-progress-bar" style="height:100%;width:${pct}%;background:linear-gradient(90deg,#10b981,#6366f1);border-radius:99px;transition:width .4s"></div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Check off days as you finish them in the Daily Plan tab. Your progress is saved in this browser.</p>
+      </div>
+    </div>
     <p style="font-size:13px;color:var(--muted);margin-top:12px">
-      💡 Use the tabs to explore each section. Start with Daily Plan to see what to study each day, then Resources for videos, Notes for revision, Flashcards for active recall, and MCQs for practice.
+      💡 Use the tabs to explore each section. Start with Daily Plan to see what to study each day (check off days as you go!), then Resources for videos, Notes for revision, Flashcards for active recall, and MCQs for practice.
     </p>`;
 
-  // Daily plan
-  const planHtml = pkg.daily_plan.map(d => `
-    <div class="day-row ${d.activities.join(' ').toLowerCase().includes('revis') || d.chapter.toLowerCase().includes('revis') ? 'review' : ''}">
+  // Daily plan (with completion checkboxes)
+  const planHtml = `
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="plan-progress-stat"><b style="color:var(--text)">${completedCount}/${pkg.total_days} days</b> completed (${pct}%)</span>
+      <button id="reset-progress" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted)">Reset progress</button>
+    </div>
+    ${pkg.daily_plan.map(d => {
+      const isDone = completed.has(String(d.day));
+      const isReview = d.activities.join(' ').toLowerCase().includes('revis') || d.chapter.toLowerCase().includes('revis');
+      return `
+    <div class="day-row ${isReview ? 'review' : ''} ${isDone ? 'day-done' : ''}" data-day="${d.day}">
+      <label class="day-check" title="Mark as completed">
+        <input type="checkbox" class="day-checkbox" data-day="${d.day}" ${isDone ? 'checked' : ''}>
+        <span class="checkmark"></span>
+      </label>
       <div class="day-badge">D${d.day}${d.date?`<small>${d.date.slice(5)}</small>`:''}</div>
-      <div class="day-body"><h4>${esc(d.chapter)}</h4>
+      <div class="day-body">
+        <h4>${esc(d.chapter)}</h4>
         <div class="hours">⏱ ${d.hours} hours</div>
         <ul>${d.activities.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>
       </div>
-    </div>`).join("");
+    </div>`;}).join("")}`;
 
   // Resources grouped by chapter
   const rByCh = {};
@@ -321,6 +364,36 @@ function renderResults(jobId, j) {
     await navigator.clipboard.writeText(planUrl);
     copyBtn.textContent = "✅ Link copied!";
     setTimeout(()=>copyBtn.textContent="🔗 Copy shareable link", 2000);
+  });
+
+  // Day progress checkboxes
+  const updateProgress = () => {
+    const done = resultsSection.querySelectorAll(".day-checkbox:checked").length;
+    const total = pkg.total_days;
+    const pct = Math.round(done/total*100);
+    const bar = resultsSection.querySelector("#overview-progress-bar");
+    if (bar) bar.style.width = pct + "%";
+    // Update plan header stats
+    const stat = resultsSection.querySelector("#plan-progress-stat");
+    if (stat) stat.innerHTML = `<b style="color:var(--text)">${done}/${total} days</b> completed (${pct}%)`;
+  };
+  resultsSection.querySelectorAll(".day-checkbox").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const day = cb.dataset.day;
+      const row = cb.closest(".day-row");
+      if (cb.checked) { completed.add(day); row.classList.add("day-done"); }
+      else { completed.delete(day); row.classList.remove("day-done"); }
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify([...completed]));
+      updateProgress();
+    });
+  });
+  const resetBtn = resultsSection.querySelector("#reset-progress");
+  if (resetBtn) resetBtn.addEventListener("click", () => {
+    if (!confirm("Reset all day checkmarks for this plan?")) return;
+    completed.clear();
+    localStorage.removeItem(PROGRESS_KEY);
+    resultsSection.querySelectorAll(".day-checkbox").forEach(cb => { cb.checked = false; cb.closest(".day-row").classList.remove("day-done"); });
+    updateProgress();
   });
 
   // Scroll to results
