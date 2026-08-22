@@ -68,7 +68,7 @@ class JobStore:
         return self._memory.get(job_id)
 
     def save(self, state: StudyPlanState) -> None:
-        state.updated_at = datetime.utcnow()
+        state.updated_at = _utcnow()
         if self._use_firestore:
             self._col.document(state.job_id).set(state.model_dump(mode="json"))
         else:
