@@ -1,0 +1,20 @@
+# Core
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+
+# Google ADK + Gemini (extensions required for LiteLLM support if used)
+google-adk[extensions]>=1.0.0
+google-genai>=1.2.0
+google-cloud-aiplatform>=1.70.0
+google-cloud-firestore>=2.19.0
+google-auth>=2.35.0
+
+# Search & utilities (local/dev only — cloud uses Vertex AI grounding)
+duckduckgo-search>=6.3.0
+requests>=2.32.0
+PyPDF2>=3.0.1
+python-dateutil>=2.9.0

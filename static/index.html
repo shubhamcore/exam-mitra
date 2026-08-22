@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exam Mitra 📚 — Your AI Study Companion</title>
+<link rel="stylesheet" href="/static/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="hero">
+  <nav class="nav">
+    <div class="logo"><span class="logo-icon">📚</span> Exam Mitra</div>
+    <div class="badge">All Things Agentic Hackathon · Google Cloud</div>
+  </nav>
+  <div class="hero-inner">
+    <h1>Paste your syllabus.<br/><span class="accent">Get a complete study plan in under 2 minutes.</span></h1>
+    <p class="subtitle">Exam Mitra is an autonomous AI agent built on <b>Google ADK</b> + <b>Gemini 3.5 Flash</b> + <b>Cloud Run</b> + <b>Firestore</b>. It parses your syllabus, builds a day-by-day plan, finds free YouTube lectures from top Indian educators, writes revision notes, creates flashcards, and generates practice MCQs — all without you typing a second prompt.</p>
+    <div class="hero-stats">
+      <div><div class="stat-num">7</div><div class="stat-label">autonomous<br/>steps</div></div>
+      <div><div class="stat-num">0</div><div class="stat-label">chat turns<br/>needed</div></div>
+      <div><div class="stat-num">100%</div><div class="stat-label">free &amp;<br/>open source</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section id="form-section" class="card">
+    <h2>🚀 Generate your study package</h2>
+    <p class="hint">Tell us what you're preparing for. Exam Mitra handles the rest.</p>
+    <form id="plan-form">
+      <div class="grid-2">
+        <label>
+          <span>Exam name</span>
+          <input id="exam" type="text" placeholder="e.g. JEE Mains Physics, UPSC GS Paper 2, NEET Biology" required />
+        </label>
+        <label>
+          <span>Daily study hours</span>
+          <input id="hours" type="number" min="1" max="16" step="0.5" value="4" required />
+        </label>
+      </div>
+      <div class="grid-2">
+        <label>
+          <span>Start date <small>(optional)</small></span>
+          <input id="start-date" type="date" />
+        </label>
+        <label>
+          <span>Language</span>
+          <select id="language">
+            <option value="en">English</option>
+            <option value="hinglish">Hinglish (Hindi in Roman script)</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span>Syllabus / topics</span>
+        <textarea id="syllabus" rows="8" placeholder="Paste the full syllabus, or just the topics you want to cover. For example:
+
+JEE Mains Physics — Units, Dimensions & Measurements; Kinematics (1D, 2D, projectile); Laws of Motion; Work, Energy, Power; Rotational Motion; Gravitation; Properties of Solids & Liquids; Thermodynamics; Kinetic Theory of Gases; Oscillations & Waves; Electrostatics; Current Electricity; Magnetic Effects of Current & Magnetism; EMI & AC; EM Waves; Optics (Ray + Wave); Dual Nature of Matter; Atoms & Nuclei; Electronic Devices; Communication Systems." required></textarea>
+      </label>
+      <button type="submit" id="submit-btn" class="btn-primary">
+        <span class="btn-text">✨ Generate my study plan</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- Progress -->
+  <section id="progress-section" class="card hidden">
+    <h2>🔄 Building your plan…</h2>
+    <p class="hint">The 7-step agent pipeline is running on Google Cloud. Please don't close this tab.</p>
+    <div class="steps" id="steps-list"></div>
+  </section>
+
+  <!-- Results -->
+  <section id="results" class="hidden"></section>
+</main>
+
+<footer>
+  <p>Built with ❤️ for the <a href="https://allthingsagentichackathon.devpost.com/" target="_blank">Google Cloud All Things Agentic Hackathon 2026</a> · Open source (MIT) · Powered by Google ADK + Gemini</p>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
