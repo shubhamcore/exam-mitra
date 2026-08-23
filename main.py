@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="1.2.0")
+app = FastAPI(title="Exam Mitra 📚", version="2.0.0")
 
 # ---------- Security middleware ----------
 
@@ -105,13 +105,13 @@ async def security_middleware(request: Request, call_next):
     # Only enable HSTS in production (cloud)
     if settings.is_cloud:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-    # CSP: lock down to own origin + YouTube (for resource links) + Google Fonts
+    # CSP: own origin + Google Fonts + KaTeX CDN for math rendering
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "  # inline JS for vanilla app (no build step)
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src https://fonts.gstatic.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "font-src https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
         "img-src 'self' data: https:; "
         "connect-src 'self'; "
         "frame-ancestors 'none'",

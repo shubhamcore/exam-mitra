@@ -37,26 +37,24 @@ def _make_model(model_name: str):
     return Gemini(model=model_name, api_key=settings.gemini_api_key)
 
 
-_TEMPLATE_VAR_RE = re.compile(r"(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_.]*)\}(?!\})")
-
-
 def _escape_instruction(inst: str) -> str:
-    """Double any single {var} braces so ADK's instruction templating treats them as literals.
-
-    ADK (google-adk>=2.7) treats ``{word}`` inside an agent's instruction as a session-state
-    variable reference and raises KeyError if the variable doesn't exist. We don't use
-    templating, so escape all stray single braces by doubling them (Jinja2 convention —
-    ``{{`` renders as a literal ``{``)."""
-    return _TEMPLATE_VAR_RE.sub(lambda m: "{{" + m.group(1) + "}}", inst)
+    """No-op placeholder. We now use a callable instruction provider which bypasses
+    ADK's state-injection entirely (see make_agent). Kept for backward compatibility."""
+    return inst
 
 
 def make_agent(name: str, instruction: str, output_key: str | None = None,
                model_override: str | None = None) -> LlmAgent:
-    safe_instruction = _escape_instruction(instruction)
+    # Pass instruction as a lambda callable so ADK bypasses its {var} template
+    # injection entirely. This prevents LaTeX braces like \frac{numerator}{denominator}
+    # or example JSON like {"label":"A","text":"..."} from being misinterpreted as
+    # session-state variable references.
+    def _instruction_provider(_ctx):
+        return instruction
     return LlmAgent(
         name=name,
         model=_make_model(model_override or settings.gemini_model),
-        instruction=safe_instruction,
+        instruction=_instruction_provider,
         output_key=output_key or f"{name}_output",
     )
 
@@ -179,6 +177,76 @@ def _strip_json(text: str) -> str:
     return text
 
 
+# Valid JSON string escape sequences per RFC 8259
+_VALID_JSON_ESCAPES = set('"\\/bfnrtu')
+
+
+def _fix_latex_backslashes(s: str) -> str:
+    """Repair invalid backslash escapes (e.g. unescaped LaTeX like \\frac, \\Delta)
+    by doubling them so they survive json.loads and render correctly through KaTeX
+    (which expects literal \\frac in the source string -> single backslash in parsed JS string).
+
+    Strategy: Walk the string looking for a backslash NOT inside a string? No, we are
+    already given the FULL raw JSON text including quotes. Simpler:
+    Find every backslash that is NOT followed by a valid JSON escape
+    (", \\, /, b, f, n, r, t, uXXXX) and double it. We do this by a state-machine pass
+    that respects JSON string boundaries so we don't mangle structural characters
+    outside of strings.
+    """
+    out = []
+    i = 0
+    n = len(s)
+    in_string = False
+    while i < n:
+        c = s[i]
+        if not in_string:
+            if c == '"':
+                in_string = True
+                out.append(c)
+                i += 1
+                continue
+            out.append(c)
+            i += 1
+            continue
+        # inside a JSON string
+        if c == '\\':
+            # look at next char
+            if i + 1 < n:
+                nxt = s[i + 1]
+                if nxt in _VALID_JSON_ESCAPES:
+                    # valid JSON escape - emit as-is, but for 'u' we need to consume 4 hex digits too
+                    if nxt == 'u' and i + 5 < n:
+                        # verify 4 hex digits follow; if not, treat as invalid
+                        hex4 = s[i+2:i+6]
+                        if all(ch in '0123456789abcdefABCDEF' for ch in hex4):
+                            out.append(s[i:i+6])
+                            i += 6
+                            continue
+                    out.append(c)
+                    out.append(nxt)
+                    i += 2
+                    continue
+                # Invalid escape (e.g. \\f in \\frac, \\D in \\Delta).
+                # This is a bare backslash before a non-JSON-escape char (LaTeX).
+                # Double it so json.loads sees \\ -> literal backslash.
+                out.append('\\\\')
+                out.append(nxt)
+                i += 2
+                continue
+            # backslash at very end of string - escape it
+            out.append('\\\\')
+            i += 1
+            continue
+        if c == '"':
+            in_string = False
+            out.append(c)
+            i += 1
+            continue
+        out.append(c)
+        i += 1
+    return ''.join(out)
+
+
 def run_agent_json(agent: LlmAgent, user_prompt: str, schema: Type[T]) -> T:
     """Run an agent and parse its output into a Pydantic-validated JSON object."""
     last_err = None
@@ -189,7 +257,12 @@ def run_agent_json(agent: LlmAgent, user_prompt: str, schema: Type[T]) -> T:
             user_prompt + extra + "\n\nReturn ONLY a valid JSON object. No markdown fences, no commentary.",
         )
         try:
-            data = json.loads(_strip_json(raw))
+            stripped = _strip_json(raw)
+            # Fix common LLM JSON issues: invalid backslash escapes (LaTeX),
+            # trailing commas before } or ], missing commas between adjacent strings.
+            fixed = _fix_latex_backslashes(stripped)
+            fixed = re.sub(r',\s*([}\]])', r'\1', fixed)  # trailing commas
+            data = json.loads(fixed)
             return schema.model_validate(data)
         except (json.JSONDecodeError, ValidationError) as e:
             last_err = e

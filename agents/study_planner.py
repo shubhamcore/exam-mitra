@@ -25,9 +25,15 @@ RULES:
 2. Allocate MORE days to HIGH importance chapters, FEWER days to LOW importance.
 3. Every 5-6 study days, schedule a REVISION & PRACTICE day (chapter name should be "Revision & Practice" and activities should be "Revise previous chapters, Solve PYQs, Make mistake notebook").
 4. For each study day:
-   - "chapter": name of the main chapter to cover that day (sub-topic if chapter spans multiple days, e.g. "Kinematics: 1D Motion" then "Kinematics: Projectile Motion")
-   - "hours": hours for that day (typically 2-6 depending on daily budget)
-   - "activities": 3-4 SPECIFIC activities for that day (e.g., "Watch PW lecture on Newton's 2nd Law", "Solve 20 MCQs from HCV/NCERT", "Make short notes on friction", "Revise formulas of kinematics"). NOT generic like "study the topic" — be specific to the sub-topic.
+   - "chapter": name of the main chapter/sub-topic to cover that day (break big chapters into specific sub-topics across days, e.g. "Kinematics: 1D Motion & Graphs" then "Kinematics: Projectile Motion" then "Kinematics: Relative Velocity")
+   - "hours": hours for that day (match the daily budget; 2-8 hours depending on budget)
+   - "activities": 4-6 SPECIFIC, DETAILED activities for that day. Be EXTREMELY specific:
+     * Include WHICH educator lecture to watch (e.g., "Watch Alakh Pandey (PW) one-shot on 1D Kinematics")
+     * Include WHICH problems to solve (e.g., "Solve NCERT exercise Q1-20 + last 10 years JEE Main PYQs on motion graphs", "Solve 30 MCQs from NEET previous year on cell organelles")
+     * Include WHAT to make notes on (e.g., "Make formula sheet: write all 5 kinematics equations with units", "Make mind map of Fundamental Rights articles")
+     * Include SELF-TEST activity (e.g., "Attempt 10-min quiz on v-t, s-t graphs", "Take 20 MCQ self-test and mark mistakes")
+     Example good activities: ["Watch Physics Wallah (Alakh Sir) lecture on Newton's Laws (2 hrs)", "Read NCERT Chapter 5 + solve example problems (1 hr)", "Solve 25 JEE Main PYQs on friction & pulleys (1.5 hrs)", "Write all friction formulas + make mistake notes (30 min)", "Take 20-MCQ self-test on Laws of Motion (30 min)"].
+     NEVER generic like "study the topic" or "complete the chapter" — be specific to the sub-topic with book/lecture/MCQ count.
 5. Start Day 1 on start_date if provided; otherwise leave date as null (we'll fill it client-side).
 6. Early days = easier/introductory content. Later days = harder topics + revision.
 7. If there are only 1-2 chapters, still spread them properly across days with practice sessions.

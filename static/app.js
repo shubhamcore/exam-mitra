@@ -1,5 +1,6 @@
 /* =========================================================
-   Exam Mitra — frontend logic (SSE, rendering, interactions)
+   Exam Mitra — frontend logic v2.1
+   SSE, rendering, KaTeX math, expandable days, exam presets.
    Vanilla JS, no frameworks.
    ========================================================= */
 const $  = (sel, root = document) => root.querySelector(sel);
@@ -10,18 +11,159 @@ const submitBtn        = $("#submit-btn");
 const progressSection  = $("#progress-section");
 const resultsSection   = $("#results");
 const stepsList        = $("#steps-list");
+const toastEl          = $("#toast");
 
 const STEP_LABELS = [
   "Queued",
   "Parsing syllabus into chapters",
   "Building your day-by-day study plan",
-  "Finding the best free video lectures",
-  "Writing revision notes, flashcards & MCQs",
-  "Finalizing your study package…",
-  "Finalizing your study package…",
+  "Finding best free video lectures from top Indian educators",
+  "Writing revision notes with beautifully-formatted formulas",
+  "Creating active-recall flashcards",
+  "Generating exam-style MCQs with detailed explanations",
   "🎉 Your study package is ready!",
 ];
 const TOTAL_STEPS = 7;
+
+/* =========================================================
+   EXAM PRESETS DATABASE — covers 50+ Indian exams
+   ========================================================= */
+const EXAM_PRESETS = {
+  engineering: [
+    { emoji: "⚡", label: "JEE Mains Full Physics", exam: "JEE Mains Physics", hours: 5,
+      syllabus: "Kinematics (1D + 2D), Laws of Motion, Work Energy Power, Rotational Motion, Gravitation, Properties of Solids and Liquids, Thermodynamics, Kinetic Theory of Gases, Oscillations and Waves, Electrostatics, Current Electricity, Magnetism, EMI and AC, Electromagnetic Waves, Ray Optics, Wave Optics, Modern Physics (Dual Nature, Atoms, Nuclei), Semiconductors, Communication Systems" },
+    { emoji: "🧪", label: "JEE Mains Full Chemistry", exam: "JEE Mains Chemistry", hours: 5,
+      syllabus: "Some Basic Concepts of Chemistry (Mole Concept), Atomic Structure, Chemical Bonding and Molecular Structure, States of Matter, Thermodynamics and Thermochemistry, Equilibrium (Chemical + Ionic), Redox Reactions, Solutions, Electrochemistry, Chemical Kinetics, Surface Chemistry, Coordination Compounds, General Organic Chemistry (GOC), Hydrocarbons, Haloalkanes and Haloarenes, Alcohols/Phenols/Ethers, Aldehydes/Ketones/Carboxylic Acids, Amines, Biomolecules, Polymers, Chemistry in Everyday Life" },
+    { emoji: "📐", label: "JEE Mains Full Maths", exam: "JEE Mains Mathematics", hours: 5,
+      syllabus: "Sets, Relations and Functions, Complex Numbers and Quadratic Equations, Matrices and Determinants, Permutations and Combinations, Binomial Theorem, Sequences and Series, Trigonometry, Straight Lines, Conic Sections, Circles, Limits Continuity and Differentiability, Differentiation and Applications, Indefinite Integration, Definite Integrals and Area, Differential Equations, Vectors, Three Dimensional Geometry, Probability, Statistics, Mathematical Reasoning" },
+    { emoji: "🎯", label: "Just Kinematics (quick)", exam: "JEE Mains Physics", hours: 4,
+      syllabus: "Kinematics" },
+    { emoji: "🔧", label: "JEE Advanced Mechanics", exam: "JEE Advanced Physics (Mechanics)", hours: 6,
+      syllabus: "Kinematics in 1D and 2D (Projectile, Relative Velocity), Newton's Laws of Motion with Pulleys and Wedges, Friction, Work Power Energy, Conservation of Momentum and Collisions, Rotational Motion (Moment of Inertia, Torque, Angular Momentum, Rolling Motion), Gravitation, Fluid Mechanics, SHM, Damped and Forced Oscillations, Mechanical Waves" },
+  ],
+  medical: [
+    { emoji: "🧬", label: "NEET Full Biology", exam: "NEET UG Biology", hours: 5,
+      syllabus: "The Living World, Biological Classification, Plant Kingdom, Animal Kingdom, Morphology of Flowering Plants, Anatomy of Flowering Plants, Structural Organisation in Animals, Cell: Unit of Life, Biomolecules, Cell Cycle and Cell Division, Transport in Plants, Mineral Nutrition, Photosynthesis, Respiration in Plants, Plant Growth and Development, Digestion and Absorption, Breathing and Exchange of Gases, Body Fluids and Circulation, Excretory Products, Locomotion and Movement, Neural Control and Coordination, Chemical Coordination, Reproduction in Organisms, Human Reproduction, Reproductive Health, Principles of Inheritance (Genetics), Molecular Basis of Inheritance, Evolution, Human Health and Disease, Strategies for Food Production, Microbes in Human Welfare, Biotechnology Principles and Applications, Ecology and Environment, Biodiversity and Conservation" },
+    { emoji: "⚛️", label: "NEET Physics", exam: "NEET Physics", hours: 4,
+      syllabus: "Kinematics, Laws of Motion, Work Energy Power, Rotational Motion, Gravitation, Properties of Solids and Liquids, Thermodynamics, Kinetic Theory of Gases, Oscillations and Waves, Electrostatics, Current Electricity, Magnetism, EMI and AC, Ray Optics, Wave Optics, Dual Nature of Matter, Atoms and Nuclei, Semiconductor Electronics" },
+    { emoji: "⚗️", label: "NEET Chemistry", exam: "NEET Chemistry", hours: 4,
+      syllabus: "Mole Concept, Atomic Structure, Chemical Bonding, States of Matter, Thermodynamics, Equilibrium, Redox Reactions, Solutions, Electrochemistry, Chemical Kinetics, Coordination Compounds, General Organic Chemistry, Hydrocarbons, Haloalkanes, Alcohols/Phenols/Ethers, Aldehydes/Ketones/Carboxylic Acids, Amines, Biomolecules, Polymers, Chemistry in Everyday Life" },
+    { emoji: "🩺", label: "Human Physiology (high weightage)", exam: "NEET Biology - Human Physiology", hours: 4,
+      syllabus: "Digestion and Absorption, Breathing and Exchange of Gases, Body Fluids and Circulation (Blood, Heart, Cardiac Cycle, ECG), Excretory Products and Their Elimination (Kidney, Nephron, Urine Formation), Locomotion and Movement (Muscles, Bones, Joints), Neural Control and Coordination (Neuron, Brain, Reflex Action, Sense Organs), Chemical Coordination and Integration (Endocrine Glands and Hormones)" },
+    { emoji: "🧪", label: "Just Cell Biology", exam: "NEET Biology", hours: 3,
+      syllabus: "Cell Biology" },
+  ],
+  civil: [
+    { emoji: "🏛️", label: "UPSC Prelims GS Complete", exam: "UPSC CSE Prelims GS Paper 1", hours: 6,
+      syllabus: "Indian Polity and Constitution (Preamble, Fundamental Rights, DPSP, Parliament, Judiciary, Federalism, Local Government, Constitutional Bodies), Indian Economy (Planning, Five Year Plans, NITI Aayog, Budget, Fiscal Policy, RBI Monetary Policy, Banking, Agriculture, Industry, Infrastructure, Poverty, Unemployment), Modern Indian History (1857 Revolt, Governor Generals, Social Reform Movements, Formation of INC, Moderates vs Extremists, Gandhian Era, Independence 1947), Ancient Indian History (Indus Valley, Vedic, Maurya, Gupta, Post-Gupta), Medieval Indian History (Delhi Sultanate, Mughal Empire, Vijayanagara, Marathas), Indian Geography (Physical Features, Rivers, Climate, Soils, Vegetation, Agriculture, Minerals, Industries, Transport), World Geography (Continents, Oceans, Mountains, Rivers, Climate Zones), Environment and Ecology (Ecosystems, Biodiversity, Climate Change, Environmental Conventions, Protected Areas), General Science (Physics, Chemistry, Biology basics for Prelims), Current Affairs (last 18 months national and international)" },
+    { emoji: "📋", label: "UPSC CSAT Paper 2", exam: "UPSC CSAT Paper 2", hours: 4,
+      syllabus: "Reading Comprehension, Quantitative Aptitude (Number System, Percentages, Ratio Proportion, Time Speed Distance, Profit Loss, Average, Simple Interest Compound Interest), Logical Reasoning (Syllogism, Venn Diagrams, Blood Relations, Direction, Seating Arrangement, Coding-Decoding), Data Interpretation (Tables, Bar Charts, Pie Charts, Line Graphs), Basic Numeracy, Decision Making, Problem Solving, Analytical Ability, Interpersonal Skills including Communication Skills" },
+    { emoji: "⚖️", label: "Indian Polity (M. Laxmikanth)", exam: "UPSC Indian Polity", hours: 5,
+      syllabus: "Constitutional Framework (Making of Constitution, Preamble, Features, Schedules), Fundamental Rights, Directive Principles of State Policy, Fundamental Duties, Union Executive (President, Vice President, PM, Council of Ministers, Attorney General), Parliament (Lok Sabha, Rajya Sabha, Speaker, Committees, Bills and Law Making), Union Judiciary (Supreme Court, PIL, Judicial Review, Judicial Activism), State Government (Governor, CM, State Legislature, High Courts), Local Government (Panchayati Raj, Municipalities), Union Territories and Special Areas, Constitutional Bodies (EC, CAG, UPSC, SPSC, Finance Commission, NITI Aayog), Non-Constitutional Bodies (NDC, NHRC, CVC, CIC), Centre-State Relations, Emergency Provisions, Constitutional Amendments" },
+    { emoji: "💰", label: "Indian Economy", exam: "UPSC Indian Economy", hours: 5,
+      syllabus: "National Income Accounting, Economic Planning in India (Five Year Plans, NITI Aayog), Agriculture (Green Revolution, Cropping Patterns, Land Reforms, MSP, PDS, Food Security), Industry (Industrial Policy, MSME, PSUs, Make in India), Services Sector, Banking in India (RBI, Commercial Banks, NBFCs, Monetary Policy), Financial Markets (SEBI, Stock Exchanges), Public Finance (Budget, Taxation GST, Fiscal Policy, FRBM), Infrastructure (Energy, Transport, Telecom, Power), Poverty and Unemployment, Social Sector (Health, Education, MGNREGA), External Sector (BoP, FDI, FPI, Exchange Rate, WTO, IMF World Bank), Economic Survey and Union Budget Highlights" },
+    { emoji: "📜", label: "Modern Indian History (Spectrum)", exam: "UPSC Modern Indian History", hours: 4,
+      syllabus: "Advent of Europeans, British Conquest of India (Bengal, Mysore, Maratha, Punjab), Governor Generals (Clive to Mountbatten), 1857 Revolt, Social and Religious Reform Movements (Brahmo Samaj, Arya Samaj, Prarthana Samaj, Theosophical Society, Aligarh Movement), Formation of Indian National Congress, Moderate Phase (1885-1905), Extremist Phase and Swadeshi Movement (1905-1917), Revolutionary Terrorism, Gandhian Era (Champaran, Kheda, Ahmedabad, Non-Cooperation, Civil Disobedience, Quit India), Peasant and Tribal Movements, Left Movement, INA and Subhash Chandra Bose, Partition and Independence (1947)" },
+  ],
+  govt: [
+    { emoji: "📝", label: "SSC CGL Tier 1", exam: "SSC CGL Tier 1", hours: 5,
+      syllabus: "General Intelligence and Reasoning (Series, Coding-Decoding, Analogy, Odd One Out, Direction, Blood Relation, Venn Diagram, Mathematical Operation, Syllogism, Paper Folding, Mirror Image, Embedded Figure, Dice), Quantitative Aptitude (Number System, LCM HCF, Simplification, Percentage, Ratio Proportion, Average, Profit Loss, SI CI, Time Work, Time Speed Distance, Boat Stream, Pipe Cistern, Geometry, Mensuration, Trigonometry, Algebra, DI), English Language (Grammar, Vocabulary, Reading Comprehension, One Word Substitution, Idioms, Synonyms Antonyms, Sentence Improvement, Error Detection), General Awareness (Indian History, Polity, Geography, Economics, Physics Chemistry Biology up to 10th, Current Affairs, Static GK)" },
+    { emoji: "🏦", label: "Banking IBPS/SBI PO", exam: "IBPS PO / SBI PO", hours: 5,
+      syllabus: "Quantitative Aptitude (Simplification, Number Series, Quadratic Equations, Data Interpretation, Average, Percentage, Ratio Proportion, Profit Loss, SI CI, Time Work, Speed Distance, Mensuration, Probability, Permutation Combination), Reasoning Ability (Puzzle, Seating Arrangement, Syllogism, Inequality, Coding-Decoding, Blood Relation, Direction, Input Output, Alphanumeric Series, Data Sufficiency), English Language (Reading Comprehension, Grammar, Cloze Test, Para Jumbles, Error Detection, Fill in the Blanks, Vocabulary), General/Financial Awareness (Banking Terms, RBI, Monetary Policy, Budget, Economy Current Affairs, Financial Institutions), Computer Awareness (Basics, MS Office, Internet, Networking)" },
+    { emoji: "🚂", label: "Railway RRB NTPC", exam: "RRB NTPC (Non-Technical Popular Categories)", hours: 4,
+      syllabus: "Mathematics (Number System, Decimals Fractions, LCM HCF, Percentage, Ratio Proportion, Profit Loss, SI CI, Time Work, Time Distance, Average, Mensuration, DI), General Intelligence and Reasoning (Analogies, Series, Coding-Decoding, Puzzle, Venn Diagram, Data Sufficiency, Direction, Blood Relations), General Awareness (Indian History and Culture, Geography of India and World, Indian Polity and Constitution, Indian Economy, General Science and Technology, Current Affairs, Sports, Books and Authors, Important Days), General Science (Physics, Chemistry, Biology up to 10th standard)" },
+    { emoji: "🔤", label: "SSC CHSL", exam: "SSC CHSL (10+2)", hours: 4,
+      syllabus: "English Language (Spot the Error, Fill in the Blanks, Synonyms/Antonyms, Spellings, Idioms, One Word Substitution, Sentence Improvement, Active/Passive, Direct/Indirect), General Intelligence (Symbolic/Number Analogy, Series, Coding-Decoding, Venn Diagrams, Direction, Blood Relations), Quantitative Aptitude (Arithmetic, Algebra, Geometry, Mensuration, Trigonometry, DI), General Awareness (History, Polity, Geography, Science, Current Affairs)" },
+  ],
+  defence: [
+    { emoji: "🛡️", label: "NDA Complete", exam: "NDA (National Defence Academy)", hours: 6,
+      syllabus: "Mathematics (Algebra: Sets, Relations, Complex Numbers, Quadratic, Permutation Combination, Binomial, Logarithm, AP GP HP, Matrices Determinants; Trigonometry: Identities, Heights Distances; Coordinate Geometry: Straight Lines, Conic Sections; Calculus: Limits, Continuity, Differentiation, Integration, Differential Equations; Vectors, 3D, Statistics Probability), General Ability Test (English: Grammar, Comprehension, Vocabulary; GK: Physics, Chemistry, General Science, Social Studies, Indian History, Geography, Current Affairs; Physics: Motion, Force, Energy, Light, Sound, Electricity; Chemistry: Elements, Compounds, Reactions; Biology: Cells, Plants, Animals, Human Body; History: Modern India, Freedom Struggle; Geography: India and World; Polity: Constitution, Panchayati Raj)" },
+    { emoji: "✈️", label: "CDS / AFCAT", exam: "CDS / AFCAT", hours: 5,
+      syllabus: "English (Comprehension, Grammar, Vocabulary, Antonyms Synonyms, Error Spotting, Sentence Arrangement), General Knowledge (Indian History, Polity, Geography, Economy, General Science, Current Affairs, Defence), Elementary Mathematics (Arithmetic: Number System, HCF LCM, Percentage, Profit Loss, SI CI, Ratio, Time Work, Time Distance; Algebra: Basic Operations, Linear Equations, Quadratic, Logarithm; Trigonometry: Identities, Heights Distances; Geometry: Lines, Angles, Triangles, Circles, Mensuration; Statistics: Tabulation, Bar Charts, Pie Charts)" },
+  ],
+  teaching: [
+    { emoji: "👩‍🏫", label: "CTET Paper 1 (Class 1-5)", exam: "CTET Paper 1 (Primary)", hours: 4,
+      syllabus: "Child Development and Pedagogy (Child Development: Growth and Development, Theories (Piaget, Kohlberg, Vygotsky), Learning Theories, Inclusive Education, Assessment), Language 1 (Hindi/English: Pedagogy, Grammar, Reading Comprehension), Language 2 (English/Hindi: Comprehension, Pedagogy), Mathematics (Number System, Addition Subtraction, Multiplication Division, Fractions, Measurement, Shapes, Geometry, Data Handling, Pedagogy of Maths), Environmental Studies (EVS: Family, Friends, Food, Shelter, Water, Travel, Things We Make and Do, Pedagogy of EVS)" },
+    { emoji: "👨‍🏫", label: "CTET Paper 2 (Class 6-8)", exam: "CTET Paper 2 (Upper Primary)", hours: 4,
+      syllabus: "Child Development and Pedagogy (Adolescence, Learning Theories, Intelligence, Personality, Assessment and Evaluation, Inclusive Education), Language 1 (Hindi/English Pedagogy, Grammar, Comprehension), Language 2 (English/Hindi Comprehension, Pedagogy), Mathematics and Science (Number System, Algebra, Geometry, Mensuration, Data Handling; Science: Food, Materials, World of Living, How Things Work, Moving Things, Natural Phenomena, Natural Resources) OR Social Studies/Social Science (History, Geography, Social and Political Life, Pedagogy)" },
+  ],
+  state: [
+    { emoji: "🗺️", label: "BPSC Prelims (Bihar)", exam: "BPSC Prelims (Bihar PSC)", hours: 5, lang: "hinglish",
+      syllabus: "General Studies: General Science (Physics, Chemistry, Biology basics), History of India and Bihar (Ancient: Bihar in Mahajanapadas, Maurya Empire, Ashoka; Medieval: Bihar under Delhi Sultanate and Mughals; Modern: Bihar in Freedom Struggle, Champaran, Gandhiji in Bihar), Geography of India and Bihar (Physical Features, Rivers of Bihar (Kosi, Gandak, Sone, Ganga), Agriculture, Minerals, Industries, Transport), Indian Polity and Economy (Constitution, Panchayati Raj, Bihar Panchayati Raj Act, Five Year Plans, Bihar Economy: Agriculture, Industries, Infrastructure, Growth), National Movement and Role of Bihar, General Mental Ability, Current Events of National and International Importance, Bihar Special: Culture, Festivals (Chhath), Fairs, Folk Dances, Tourism, Personalities of Bihar (Jayaprakash Narayan, Rajendra Prasad, Kunwar Singh, Karpoori Thakur)" },
+    { emoji: "🕌", label: "UPPSC Prelims (Uttar Pradesh)", exam: "UPPSC Prelims (UP PCS)", hours: 5,
+      syllabus: "General Studies Paper 1: History of India (Ancient, Medieval, Modern with focus on UP: Rama, Krishna, Buddha, Mahavira, Mughal Awadh, 1857 in UP, UP in Freedom Struggle), Geography of India and UP (Physical, Rivers of UP: Ganga, Yamuna, Gomti, Ghaghara; Agriculture, Minerals, Industries in UP), Indian Polity and Governance (Constitution, UP Panchayati Raj, State Administration), Indian Economy and UP Economy (Agriculture in UP, MSME, One District One Product, Infrastructure), General Science, Current Affairs, UP Special (Culture: Kathak, Ramlila, Chikankari, Festivals, Personalities, Demography, Education)", lang: "en" },
+    { emoji: "🐅", label: "MPSC (Maharashtra)", exam: "MPSC Rajyaseva Prelims", hours: 5,
+      syllabus: "General Studies: History of India and Maharashtra (Maratha Empire (Shivaji, Peshwas), Bhakti Movement in Maharashtra, Maharashtra in Freedom Struggle, Samyukta Maharashtra Movement, Reformers: Jyotiba Phule, Ambedkar, Savitribai Phule), Geography of India and Maharashtra (Physical: Western Ghats, Konkan, Deccan Plateau; Rivers of Maharashtra: Godavari, Krishna, Bhima; Agriculture, Industries, Mumbai), Indian Polity and Constitution, Economy (Indian and Maharashtra Economy: Agriculture, Sugar Industry, IT in Pune/Mumbai, MIDC), General Science, Environment, Current Affairs, Maharashtra Special: Culture (Lavani, Tamasha, Warli, Ganesh Chaturthi), Tourism (Ajanta, Ellora), Personalities" },
+    { emoji: "🏰", label: "RPSC RAS (Rajasthan)", exam: "RPSC RAS Prelims (Rajasthan PSC)", hours: 5,
+      syllabus: "General Studies: History, Art Culture Literature Tradition of Rajasthan (Ancient Kingdoms: Mewar, Marwar; Forts: Chittorgarh, Mehrangarh; Folk Dances: Ghoomar, Kalbeliya; Fairs: Pushkar; Festivals: Teej, Gangaur; Literature: Meera, Surdas), Geography of Rajasthan (Thar Desert, Aravalli Range, Rivers: Chambal, Luni; Wildlife: Ranthambore, Keoladeo; Minerals: Copper, Zinc, Salt), Indian History, Geography of India, Indian Polity Constitution, Indian Economy, Science and Technology, Reasoning and Mental Ability, Current Affairs National and Rajasthan" },
+    { emoji: "🦁", label: "GPSC (Gujarat)", exam: "GPSC Gujarat PSC Prelims", hours: 5,
+      syllabus: "General Studies: History of India and Gujarat (Ancient: Indus Valley (Dholavira, Lothal), Solanki Dynasty; Medieval: Gujarat Sultanate; Modern: Freedom Movement in Gujarat, Gandhi in Gujarat, Dandi March, Bardoli Satyagraha), Geography of India and Gujarat (Physical Features, Rivers of Gujarat: Narmada, Tapi, Sabarmati; Rann of Kutch, Gir Forest; Industries: Textiles, Petrochemicals, Diamond Polishing), Indian Polity and Constitution, Economy of India and Gujarat, General Science, Current Affairs" },
+  ],
+  other: [
+    { emoji: "🎓", label: "CUET UG", exam: "CUET UG (Central Universities Entrance Test)", hours: 4,
+      syllabus: "Language Section (English/Hindi: Comprehension, Grammar, Vocabulary, Verbal Ability), Domain Subjects (choose: Physics, Chemistry, Maths, Biology, History, Geography, Polity, Economics, Accountancy, Business Studies, Psychology, Sociology, etc. — NCERT Class 12 level), General Test (General Knowledge and Current Affairs, General Mental Ability, Numerical Ability, Quantitative Reasoning, Logical and Analytical Reasoning)" },
+    { emoji: "⚙️", label: "GATE Engineering", exam: "GATE (Engineering Graduate Aptitude)", hours: 6,
+      syllabus: "Engineering Mathematics (Linear Algebra, Calculus, Differential Equations, Complex Variables, Probability Statistics, Numerical Methods), Core Engineering Subject topics (varies by branch: Computer Science, Mechanical, Electrical, Civil, Electronics etc. — include full branch-specific syllabus from GATE syllabus), General Aptitude (Verbal Ability: Grammar, Sentence Completion, Analogies; Numerical Ability: Numerical Computation, Estimation, Data Interpretation)" },
+    { emoji: "📊", label: "CAT MBA Entrance", exam: "CAT (Common Admission Test for IIMs)", hours: 5,
+      syllabus: "Verbal Ability and Reading Comprehension (Reading Passages, Para Jumbles, Odd One Out, Para Summary, Sentence Correction, Vocabulary), Data Interpretation and Logical Reasoning (Tables, Bar Charts, Pie Charts, Line Graphs, Seating Arrangements, Puzzles, Blood Relations, Syllogisms, Grid-Based DI, Caselets), Quantitative Aptitude (Arithmetic: Percentages, Profit Loss, Ratio, Time Work, Time Speed, SI/CI; Algebra: Linear Equations, Quadratics, Functions, Progressions; Geometry and Mensuration; Number System; Modern Maths: Permutation Combination, Probability, Set Theory, Logarithms)" },
+    { emoji: "🏫", label: "CBSE Class 12 Physics", exam: "CBSE Class 12 Physics (Board Exam)", hours: 4,
+      syllabus: "Electrostatics (Coulomb's Law, Electric Field, Gauss Law, Potential, Capacitance), Current Electricity (Ohm's Law, Kirchhoff, Wheatstone Bridge, Potentiometer), Magnetism and Matter (Biot-Savart, Ampere Law, Moving Coil Galvanometer), EMI and AC (Faraday's Law, Lenz Law, AC Generator, Transformer, LCR Circuits), Electromagnetic Waves, Ray Optics (Mirror, Lens, Prism, Telescope, Microscope), Wave Optics (Interference, Diffraction, Polarisation, YDSE), Dual Nature of Radiation and Matter, Atoms (Bohr Model), Nuclei (Radioactivity, Fission Fusion), Semiconductors (Diodes, Transistors, Logic Gates), Communication Systems" },
+    { emoji: "📚", label: "Custom / Any topic", exam: "Self Study", hours: 4,
+      syllabus: "Type any topic, chapter, or full exam syllabus in the box above." },
+  ],
+};
+
+/* Exam preset UI */
+const catRow = $("#cat-row");
+const examRow = $("#exam-row");
+const examLabel = $("#exam-label");
+
+function renderExamChips(category) {
+  examRow.innerHTML = "";
+  const list = EXAM_PRESETS[category] || [];
+  list.forEach((p, idx) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "preset-chip exam-chip" + (idx === 0 ? " active" : "");
+    b.dataset.exam = p.exam;
+    b.dataset.hours = p.hours;
+    b.dataset.syllabus = p.syllabus;
+    if (p.lang) b.dataset.lang = p.lang;
+    b.innerHTML = `<span class="emoji">${p.emoji}</span> ${p.label}`;
+    b.addEventListener("click", () => applyPreset(p, b));
+    examRow.appendChild(b);
+  });
+  // Auto-apply first exam chip in the selected category
+  if (list.length > 0) {
+    $("#exam").value = list[0].exam;
+    $("#hours").value = list[0].hours;
+    $("#syllabus").value = list[0].syllabus;
+    if (list[0].lang) $("#language").value = list[0].lang;
+  }
+}
+
+function applyPreset(p, chip) {
+  $("#exam").value = p.exam;
+  $("#hours").value = p.hours;
+  $("#syllabus").value = p.syllabus;
+  if (p.lang) $("#language").value = p.lang;
+  $$(".exam-chip").forEach(c => c.classList.remove("active"));
+  if (chip) chip.classList.add("active");
+  toast("✅ Preset loaded — review and click Generate!");
+}
+
+$$(".cat-chip").forEach(cat => {
+  cat.addEventListener("click", () => {
+    $$(".cat-chip").forEach(c => c.classList.remove("active"));
+    cat.classList.add("active");
+    renderExamChips(cat.dataset.cat);
+  });
+});
+
+// Initialize with engineering category visible
+renderExamChips("engineering");
+
+
 
 /* ---- utilities ---- */
 function esc(s) {
@@ -31,15 +173,77 @@ function esc(s) {
   );
 }
 
+function toast(msg, ms = 2200) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove("show"), ms);
+}
+
+/* ---- KaTeX math rendering ---- */
+function renderMathIn(root) {
+  const render = () => {
+    if (!window.renderMathInElement) {
+      // KaTeX not loaded yet — retry shortly
+      setTimeout(() => renderMathIn(root), 150);
+      return;
+    }
+    try {
+      renderMathInElement(root, {
+        delimiters: [
+          {left: "$$", right: "$$", display: true},
+          {left: "$",  right: "$",  display: false},
+          {left: "\\(", right: "\\)", display: false},
+          {left: "\\[", right: "\\]", display: true},
+        ],
+        throwOnError: false,
+        errorColor: "#dc2626",
+        strict: "ignore",
+      });
+    } catch (e) {
+      console.warn("KaTeX render error:", e);
+    }
+  };
+  if (document.readyState === "complete" || window.__katexReady) {
+    render();
+  } else {
+    window.addEventListener("load", render, {once: true});
+  }
+}
+window.__renderKatex = () => renderMathIn(document);
+
+/* ---- find resources for a given day/chapter keyword ---- */
+function resourcesForDay(chapterTitle, allResources) {
+  if (!allResources || !chapterTitle) return [];
+  const kw = chapterTitle.toLowerCase();
+  const scored = allResources.map(r => {
+    const rt = (r.chapter || "").toLowerCase();
+    const title = (r.title || "").toLowerCase();
+    let score = 0;
+    // exact chapter match
+    if (rt === kw) score += 100;
+    else if (rt && kw.includes(rt.slice(0, Math.min(rt.length, 10)))) score += 30;
+    // word overlap with chapter title
+    const words = kw.split(/\s+/).filter(w => w.length > 3);
+    for (const w of words) {
+      if (rt.includes(w)) score += 5;
+      if (title.includes(w)) score += 2;
+    }
+    return {r, score};
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.filter(s => s.score >= 5).slice(0, 3).map(s => s.r);
+}
+
 /* ---- progress rendering ---- */
 function renderProgress(currentStep, counts = {}) {
   progressSection.classList.remove("hidden");
   stepsList.innerHTML = "";
   for (let i = 1; i <= TOTAL_STEPS; i++) {
     let label = STEP_LABELS[i] || `Step ${i}`;
-    if (i === 1 && counts.chapters) label += ` — ${counts.chapters} chapters`;
-    if (i === 2 && counts.days)     label += ` — ${counts.days} days`;
-    if (i === 3 && counts.resources)label += ` — ${counts.resources} resources`;
+    if (i === 1 && counts.chapters) label += ` — ${counts.chapters} chapters identified`;
+    if (i === 2 && counts.days)     label += ` — ${counts.days} days planned`;
+    if (i === 3 && counts.resources)label += ` — ${counts.resources} resources curated`;
     if (i === 4 && counts.notes)    label += ` — ${counts.notes} notes, ${counts.flashcards||0} cards, ${counts.mcqs||0} MCQs`;
     const isDone   = i < currentStep;
     const isActive = i === currentStep;
@@ -61,7 +265,7 @@ function resetForm() {
 
 /* ---- SSE ---- */
 function connectSSE(jobId) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const es = new EventSource(`/api/jobs/${jobId}/stream`);
     let finished = false;
 
@@ -84,7 +288,7 @@ function connectSSE(jobId) {
           es.close();
           showError(data.message || "Something went wrong. Please try again.");
           resetForm();
-          resolve(); // resolve (don't reject) so UI shows error cleanly
+          resolve();
         } else if (ev === "close") {
           es.close();
           if (!finished) resolve();
@@ -92,7 +296,6 @@ function connectSSE(jobId) {
       } catch (err) { console.error("SSE parse error:", err); }
     };
     es.onerror = () => {
-      // EventSource auto-reconnects; don't reject on transient errors.
       console.warn("SSE connection hiccup, will retry…");
     };
   });
@@ -109,7 +312,6 @@ form.addEventListener("submit", async e => {
   resultsSection.innerHTML = "";
   progressSection.classList.remove("hidden");
   renderProgress(1);
-  // Scroll to progress on mobile
   progressSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const payload = {
@@ -163,6 +365,26 @@ async function loadAndRenderResults(jobId) {
   resetForm();
 }
 
+function platformBadge(p) {
+  const pl = (p || "").toLowerCase();
+  let cls = "";
+  if (pl.includes("youtube") || pl === "pw" || pl === "vedantu" || pl === "unacademy") cls = "youtube";
+  else if (pl.includes("khan")) cls = "khanacademy";
+  else if (pl.includes("nptel")) cls = "nptel";
+  else if (pl === "pw" || pl.includes("physicswallah")) cls = "pw";
+  else if (pl.includes("vedantu")) cls = "vedantu";
+  else if (pl.includes("unacademy")) cls = "unacademy";
+  return cls ? `platform-badge ${cls}` : "platform-badge";
+}
+
+function resourceIcon(p) {
+  const pl = (p || "").toLowerCase();
+  if (pl.includes("youtube") || pl === "pw" || pl === "vedantu" || pl === "unacademy" || pl.includes("mohit") || pl.includes("eduniti")) return "▶️";
+  if (pl.includes("khan")) return "🎓";
+  if (pl.includes("nptel")) return "🎥";
+  return "📚";
+}
+
 function renderResults(jobId, j) {
   if (j.error) { showError(j.error); return; }
   const pkg = j.package;
@@ -207,13 +429,14 @@ function renderResults(jobId, j) {
   /* ---------- Overview tab ---------- */
   const overviewHtml = `
     <div class="overview-card">
-      <h3>🎉 Your personalized study package is ready</h3>
-      <p>Share it with friends, download as PDF, or start studying right here. Your progress is saved in this browser.</p>
+      <h3>🎉 Your personalized study package is ready!</h3>
+      <p>Your plan is complete with day-by-day schedule, curated video lectures from top Indian educators, formula-dense revision notes (with beautiful math formatting), active-recall flashcards, and exam-style MCQs. Share with friends, download as PDF, or start studying right here. Your day-checkmark progress is auto-saved in this browser.</p>
     </div>
     <div class="action-row">
       <button id="copy-link" class="btn-accent">🔗 Copy shareable link</button>
-      <a href="${planUrl}"  target="_blank" class="btn-ghost" rel="noopener">📖 Open share page</a>
-      <a href="${printUrl}" target="_blank" class="btn-ghost" rel="noopener">📄 Download / Print PDF</a>
+      <a href="${planUrl}"  target="_blank" rel="noopener" class="btn-ghost">📖 Open share page</a>
+      <button id="open-share" class="btn-ghost" style="display:none"></button>
+      <a href="${printUrl}" target="_blank" rel="noopener" class="btn-ghost">📄 Download / Print PDF</a>
     </div>
     <div class="exam-pill">📘 ${esc(pkg.exam)}</div>
     <div class="progress-block" style="margin-top:14px">
@@ -222,54 +445,71 @@ function renderResults(jobId, j) {
         <span>${doneCount}/${pkg.total_days} days completed (${pct}%)</span>
       </div>
       <div class="progress-bar"><div id="overview-progress-bar" style="width:${pct}%"></div></div>
-      <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Check off days in the Daily Plan tab as you finish them.</p>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Check off days in the Daily Plan tab as you finish them. Click any day to see detailed activities + direct video links.</p>
     </div>`;
 
-  /* ---------- Daily plan ---------- */
+  /* ---------- Daily plan (expandable with resource quick links) ---------- */
   const planHeaderHtml = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
       <span id="plan-progress-stat" style="font-size:13px;color:var(--muted)">
-        <b style="color:var(--text)">${doneCount}/${pkg.total_days} days</b> completed (${pct}%)
+        <b style="color:var(--text)">${doneCount}/${pkg.total_days} days</b> completed (${pct}%) · Click any day to see detailed activities + quick video links
       </span>
       <button id="reset-progress" class="btn-ghost" style="padding:5px 12px;font-size:12px">Reset progress</button>
     </div>`;
 
   const planDaysHtml = pkg.daily_plan.map(d => {
     const isDone   = completed.has(String(d.day));
-    const isReview = (d.activities||[]).join(" ").toLowerCase().includes("revis") ||
-                     d.chapter.toLowerCase().includes("revis");
+    const isReview = ((d.activities||[]).join(" ").toLowerCase().includes("revis") ||
+                     d.chapter.toLowerCase().includes("revis"));
+    // find up to 3 resources matching this day's chapter
+    const dayRes = resourcesForDay(d.chapter, pkg.resources);
+    const resLinksHtml = dayRes.length ? `
+      <div class="day-chapter-label">🎬 Quick video links for this topic:</div>
+      <div class="day-quick-resources">
+        ${dayRes.map(r => `<a class="day-res-link" href="${esc(r.url)}" target="_blank" rel="noopener">▶️ ${esc((r.teacher_or_channel || "Lecture").slice(0,22))}: ${esc(r.title.slice(0,48))}${r.title.length>48?"…":""}</a>`).join("")}
+      </div>` : "";
     return `
       <div class="day-row ${isReview?"review":""} ${isDone?"day-done":""}" data-day="${d.day}">
-        <label class="day-check" title="Mark as completed">
+        <label class="day-check" title="Mark as completed" onclick="event.stopPropagation()">
           <input type="checkbox" class="day-checkbox" data-day="${d.day}" ${isDone?"checked":""}>
           <span class="checkmark"></span>
         </label>
         <div class="day-badge">D${d.day}${d.date?`<small>${d.date.slice(5)}</small>`:""}</div>
-        <div class="day-body">
-          <h4>${esc(d.chapter)}</h4>
+        <div class="day-body" onclick="this.closest('.day-row').classList.toggle('expanded')">
+          <h4>${esc(d.chapter)}<span class="expand-icon">▼</span></h4>
           <div class="hours">${d.hours} hours</div>
           <ul>${(d.activities||[]).map(a=>`<li>${esc(a)}</li>`).join("")}</ul>
+        </div>
+        <div class="day-details">
+          <div class="day-detail-inner">
+            <div class="day-chapter-label">📝 Today's activities in detail:</div>
+            <ul style="margin:0;padding-left:20px;font-size:13.5px;color:var(--text-2)">
+              ${(d.activities||[]).map(a=>`<li style="margin:4px 0">${esc(a)}</li>`).join("")}
+            </ul>
+            ${resLinksHtml}
+          </div>
         </div>
       </div>`;
   }).join("");
 
-  /* ---------- Resources (grouped by chapter) ---------- */
+  /* ---------- Resources (grouped by chapter, all open in new tab) ---------- */
   const rByCh = {};
   (pkg.resources||[]).forEach(r => { (rByCh[r.chapter] = rByCh[r.chapter]||[]).push(r); });
   const resourcesHtml = Object.keys(rByCh).length
     ? Object.entries(rByCh).map(([ch, rs]) => `
-        <h4 style="margin:18px 0 8px;font-size:15px">${esc(ch)}</h4>
+        <h4 style="margin:20px 0 10px;font-size:15px">${esc(ch)}</h4>
         ${rs.map(r => `
-          <a class="resource-card" href="${esc(r.url)}" target="_blank" rel="noopener">
-            <div class="resource-icon">${(r.platform||"").includes("youtube")||r.platform==="pw"||r.platform==="vedantu" ? "▶️" : "🎓"}</div>
+          <a class="resource-card" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">
+            <div class="resource-icon">${resourceIcon(r.platform)}</div>
             <div class="resource-body">
               <div class="resource-title">${esc(r.title)}</div>
               <div class="resource-meta">
-                <span class="platform-badge">${esc(r.platform||"resource")}</span>
+                <span class="${platformBadge(r.platform)}">${esc(r.platform || "video")}</span>
                 ${r.teacher_or_channel ? esc(r.teacher_or_channel) : ""}
               </div>
-              <div class="resource-why">${esc(r.why||"")}</div>
+              ${r.why ? `<div class="resource-why">${esc(r.why)}</div>` : ""}
             </div>
+            <div style="align-self:center;color:var(--indigo-500);font-weight:700;font-size:18px">↗</div>
           </a>`).join("")}`).join("")
     : `<p class="hint">No resources found for this topic.</p>`;
 
@@ -279,29 +519,29 @@ function renderResults(jobId, j) {
         <div class="chapter-card">
           <div class="chapter-title">📝 ${esc(n.chapter || "Chapter Notes")}</div>
           <div class="chapter-body">
-            ${(n.key_concepts||[]).length ? `<span class="section-label">Key concepts</span><ul>${n.key_concepts.map(k=>`<li>${esc(k)}</li>`).join("")}</ul>` : ""}
-            ${(n.formulas_or_definitions||[]).length ? `<span class="section-label">Formulas / definitions</span>${n.formulas_or_definitions.map(f=>`<div class="formula-item">${esc(f)}</div>`).join("")}` : ""}
-            ${(n.common_mistakes||[]).length ? `<span class="section-label">Common mistakes</span>${n.common_mistakes.map(m=>`<div class="mistake-item">⚠️ ${esc(m)}</div>`).join("")}` : ""}
-            ${n.summary ? `<span class="section-label">Summary</span><div class="summary-box">${esc(n.summary)}</div>` : ""}
+            ${(n.key_concepts||[]).length ? `<span class="section-label">Key concepts</span><ul>${n.key_concepts.map(k=>`<li>${k}</li>`).join("")}</ul>` : ""}
+            ${(n.formulas_or_definitions||[]).length ? `<span class="section-label">Formulas / definitions</span>${n.formulas_or_definitions.map(f=>`<div class="formula-item">${f}</div>`).join("")}` : ""}
+            ${(n.common_mistakes||[]).length ? `<span class="section-label">⚠️ Common mistakes to avoid</span>${n.common_mistakes.map(m=>`<div class="mistake-item">${esc(m)}</div>`).join("")}` : ""}
+            ${n.summary ? `<span class="section-label">Exam summary</span><div class="summary-box">${n.summary}</div>` : ""}
           </div>
         </div>`).join("")
     : `<p class="hint">No notes generated.</p>`;
 
   /* ---------- Flashcards ---------- */
   const cardsHtml = `
-    <p class="hint" style="margin-top:0">👆 Click any card to flip and reveal the answer.</p>
+    <p class="hint" style="margin-top:0">👆 Click any card to flip and reveal the answer. Formulas render beautifully!</p>
     <div class="flashcard-grid">
       ${(pkg.flashcards||[]).map(c => `
         <div class="flashcard">
           <div class="flashcard-inner">
             <div class="flashcard-front">
-              <span class="flashcard-tag">${esc(c.difficulty)}</span>
-              <div>${esc(c.front)}</div>
+              <span class="flashcard-tag">${esc(c.difficulty || "medium")}</span>
+              <div>${c.front}</div>
               <div class="flashcard-hint">Click to flip</div>
             </div>
             <div class="flashcard-back">
               <span class="flashcard-tag">answer</span>
-              <div>${esc(c.back)}</div>
+              <div>${c.back}</div>
             </div>
           </div>
         </div>`).join("")}
@@ -309,21 +549,21 @@ function renderResults(jobId, j) {
 
   /* ---------- MCQs ---------- */
   const mcqsHtml = `
-    <p class="hint" style="margin-top:0">Select an answer for each question, then click <b>Grade my answers</b> to see your score and weak areas.</p>
+    <p class="hint" style="margin-top:0">Select an answer for each question, then click <b>Grade my answers</b> to see your score, explanations, and weak areas.</p>
     <div id="mcq-list">
       ${(pkg.mcqs||[]).map((q,i) => `
         <div class="mcq" data-idx="${i}" data-correct="${esc(q.correct_answer)}">
-          <div class="mcq-q"><b>Q${i+1}.</b> ${esc(q.question)}
+          <div class="mcq-q"><b>Q${i+1}.</b> ${q.question}
             <small>${esc(q.chapter)} · ${esc(q.difficulty)}</small>
           </div>
           <div class="mcq-options">
             ${(q.options||[]).map(o => `
               <div class="mcq-option" data-label="${esc(o.label)}">
                 <span class="letter">${esc(o.label)}</span>
-                <span>${esc(o.text)}</span>
+                <span>${o.text}</span>
               </div>`).join("")}
           </div>
-          <div class="mcq-explanation"><b>Explanation:</b> ${esc(q.explanation)}</div>
+          <div class="mcq-explanation"><b>Explanation:</b> ${q.explanation}</div>
         </div>`).join("")}
     </div>
     <button id="grade-btn" class="btn-accent" style="margin-top:14px;padding:12px 24px;font-size:14px">📊 Grade my answers</button>
@@ -333,7 +573,7 @@ function renderResults(jobId, j) {
   resultsSection.innerHTML = `<div class="card">
     <div class="result-header">
       <h2>✅ Your personalized study plan</h2>
-      <p>Built autonomously by Exam Mitra's 7 AI agents.</p>
+      <p>Built autonomously by Exam Mitra's 7 AI agents · ${esc(pkg.exam)}</p>
       <div class="result-stats">${statsHtml}</div>
     </div>
     <div class="tabs">${tabsHtml}</div>
@@ -346,13 +586,16 @@ function renderResults(jobId, j) {
   </div>`;
   resultsSection.classList.remove("hidden");
 
-  wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, pkg.total_days);
+  // Render KaTeX math in results
+  renderMathIn(resultsSection);
+
+  wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, pkg.total_days, planUrl);
 
   resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /* ---- Wire up all interactive bits inside the rendered results ---- */
-function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays) {
+function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays, planUrl) {
   const root = resultsSection;
 
   /* Tab switching */
@@ -361,24 +604,33 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
       $$(".tab", root).forEach(x => x.classList.remove("active"));
       $$(".tab-panel", root).forEach(x => x.classList.remove("active"));
       tab.classList.add("active");
-      root.querySelector(`[data-panel="${tab.dataset.tab}"]`).classList.add("active");
+      const panel = root.querySelector(`[data-panel="${tab.dataset.tab}"]`);
+      if (panel) {
+        panel.classList.add("active");
+        // (re)render math in newly revealed panel
+        renderMathIn(panel);
+      }
     });
   });
 
   /* Copy link */
-  const planUrl = `${location.origin}/plan/${jobId}`;
   $("#copy-link", root)?.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(planUrl);
-      const btn = $("#copy-link", root);
-      btn.textContent = "✅ Link copied!";
-      setTimeout(() => btn.textContent = "🔗 Copy shareable link", 2000);
+      toast("✅ Link copied to clipboard!");
     } catch(e) {
-      alert("Could not copy link: " + e.message);
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = planUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); toast("✅ Link copied!"); }
+      catch(_) { alert("Copy this link: " + planUrl); }
+      document.body.removeChild(ta);
     }
   });
 
-  /* Flashcard flip (event delegation — works with nested clicks) */
+  /* Flashcard flip */
   root.addEventListener("click", e => {
     const fc = e.target.closest(".flashcard");
     if (fc && !e.target.closest("a")) fc.classList.toggle("flipped");
@@ -391,7 +643,7 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
     const bar = $("#overview-progress-bar", root);
     if (bar) bar.style.width = pct + "%";
     const stat = $("#plan-progress-stat", root);
-    if (stat) stat.innerHTML = `<b style="color:var(--text)">${done}/${totalDays} days</b> completed (${pct}%)`;
+    if (stat) stat.innerHTML = `<b style="color:var(--text)">${done}/${totalDays} days</b> completed (${pct}%) · Click any day to see detailed activities + quick video links`;
     $$(".day-checkbox", root).forEach(cb => {
       cb.closest(".day-row").classList.toggle("day-done", cb.checked);
       cb.checked ? completed.add(cb.dataset.day) : completed.delete(cb.dataset.day);
@@ -407,6 +659,7 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
     $$(".day-checkbox", root).forEach(cb => { cb.checked = false; });
     $$(".day-row", root).forEach(r => r.classList.remove("day-done"));
     updateProgress();
+    toast("Progress reset");
   });
 
   /* MCQ selection + grading */
@@ -445,39 +698,29 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
           if (o.dataset.label === correct) o.classList.add("correct");
           if (o.dataset.label === picked && picked !== correct) o.classList.add("wrong");
         });
+        // Re-render math in explanation
+        renderMathIn(mcq.querySelector(".mcq-explanation"));
       });
       const weakHtml = (r.weak_areas||[]).length
         ? `<h4 style="margin:12px 0 6px">📌 Areas to revisit:</h4>
            <ul class="weak-list">${r.weak_areas.map(w =>
              `<li><b>${esc(w.chapter)}</b> — ${esc(w.topic)}: ${esc(w.feedback)}</li>`
            ).join("")}</ul>`
-        : `<p style="margin:10px 0 0;color:var(--success);font-weight:600">🌟 Perfect score — great job!</p>`;
+        : `<p style="margin:10px 0 0;color:var(--success);font-weight:600">🌟 Perfect score — excellent work!</p>`;
       $("#grade-result", root).innerHTML = `
         <div class="grade-result">
           <div class="grade-score">🎯 ${r.score}/${r.total} (${r.percentage.toFixed(0)}%)</div>
           <p class="grade-msg">${esc(r.encouragement)}</p>
           ${weakHtml}
         </div>`;
+      renderMathIn($("#grade-result", root));
     } catch(e) {
-      alert("Grading error: " + e.message);
+      toast("Grading error: " + e.message);
     }
     btn.disabled = false;
     btn.textContent = "📊 Grade my answers";
   });
 }
-
-/* ---- Preset chips ---- */
-$$(".preset-chip").forEach(chip => {
-  chip.addEventListener("click", () => {
-    if (chip.dataset.exam)     $("#exam").value     = chip.dataset.exam;
-    if (chip.dataset.hours)    $("#hours").value    = chip.dataset.hours;
-    if (chip.dataset.syllabus) $("#syllabus").value = chip.dataset.syllabus;
-    $$(".preset-chip").forEach(c => c.classList.remove("active"));
-    chip.classList.add("active");
-    $("#syllabus").focus();
-    document.getElementById("plan-form").scrollIntoView({ behavior:"smooth", block:"center" });
-  });
-});
 
 /* ---- On load: auto-load ?job=XXX ---- */
 window.addEventListener("DOMContentLoaded", () => {

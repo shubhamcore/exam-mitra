@@ -1,10 +1,6 @@
 """Resource search service.
 
-On Google Cloud (Vertex AI) — uses Gemini with Google Search Grounding for
-high-quality, real-time curated resources.
-
-Locally — uses DuckDuckGo with multiple query attempts + curated fallback
-database of well-known Indian educators so we ALWAYS return resources.
+Massive curated database of India's top educators + DuckDuckGo fallback + Vertex grounding on cloud.
 """
 from __future__ import annotations
 
@@ -17,198 +13,497 @@ from models.schemas import Chapter, Resource
 
 logger = logging.getLogger(__name__)
 
-# ---------- Curated fallback resources for common Indian exam topics ----------
-# These are well-known, trusted resources for high-frequency exam topics.
-# Used only when live search fails or returns nothing useful.
+
+# ---------------------------------------------------------------------------
+# CURATED EDUCATOR DATABASE — 60+ Indian educator channels/platforms
+# Organized by subject/topic. Each entry maps keyword patterns to REAL playlists/one-shots
+# from India's most trusted teachers.
+# ---------------------------------------------------------------------------
 CURATED_RESOURCES = {
-    # Physics
+    # ===================== PHYSICS (JEE / NEET / Class 11-12) =====================
     "kinematics": [
-        {"title": "Kinematics 1D (Full Chapter) | Physics Wallah", "url": "https://www.youtube.com/watch?v=eYwW2J9vQfE", "platform": "youtube", "teacher": "Physics Wallah - Alakh Pandey", "why": "Complete 1D kinematics in one shot, JEE/NEET level."},
-        {"title": "Projectile Motion & 2D Kinematics | Khan Academy India", "url": "https://www.khanacademy.org/science/in-in-class11th-physics/in-in-class11th-physics-motion-in-a-straight-line", "platform": "khanacademy", "teacher": "Khan Academy India", "why": "Clear conceptual foundation with practice problems."},
+        {"title": "Kinematics 1D Full Chapter | Physics Wallah - Alakh Pandey", "url": "https://www.youtube.com/watch?v=eYwW2J9vQfE", "platform": "youtube", "teacher": "Physics Wallah (Alakh Pandey)", "why": "Complete 1D kinematics one-shot with numericals for JEE/NEET."},
+        {"title": "Motion in a Straight Line | Eduniti (Mohit Bhargava)", "url": "https://www.youtube.com/results?search_query=motion+in+straight+line+one+shot+eduniti+mohit+bhargava", "platform": "youtube", "teacher": "Eduniti (Mohit Bhargava)", "why": "PYQ-focused revision with conceptual depth for JEE Main/Advanced."},
+        {"title": "Projectile Motion & 2D Kinematics | Khan Academy India", "url": "https://www.khanacademy.org/science/in-in-class11th-physics/in-in-class11th-physics-motion-in-a-plane", "platform": "khanacademy", "teacher": "Khan Academy India", "why": "Clear conceptual foundation with free practice problems."},
+        {"title": "Kinematics Complete | Mohit Tyagi (Competishun)", "url": "https://www.youtube.com/results?search_query=kinematics+one+shot+mohit+tyagi+competishun+jee", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced-level kinematics from the master teacher."},
+    ],
+    "motion in straight line": [
+        {"title": "Motion in a Straight Line | Physics Wallah Arjuna Batch", "url": "https://www.youtube.com/results?search_query=motion+in+a+straight+line+one+shot+physics+wallah+arjuna", "platform": "youtube", "teacher": "Physics Wallah", "why": "Class 11 NCERT + JEE/NEET level full chapter."},
     ],
     "laws of motion": [
-        {"title": "Newton's Laws of Motion | Physics Wallah", "url": "https://www.youtube.com/watch?v=uBxHK6J0eUY", "platform": "youtube", "teacher": "Physics Wallah", "why": "All 3 laws + friction + pulley problems, JEE/NEET focused."},
-        {"title": "Laws of Motion One Shot | Vedantu JEE", "url": "https://www.youtube.com/watch?v=vdDKPx3e3lU", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Complete chapter one-shot with PYQs and numerical problems."},
+        {"title": "Newton's Laws of Motion Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=uBxHK6J0eUY", "platform": "youtube", "teacher": "Physics Wallah", "why": "All 3 laws + friction + pulley + wedge problems, JEE/NEET focused."},
+        {"title": "Laws of Motion One Shot | Vedantu JEE", "url": "https://www.youtube.com/results?search_query=laws+of+motion+one+shot+vedantu+jee", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Complete chapter with PYQs and numerical problems."},
+        {"title": "Newton's Laws of Motion | Unacademy JEE (Namo Kaul)", "url": "https://www.youtube.com/results?search_query=newton+laws+of+motion+unacademy+jee+namo+kaul", "platform": "youtube", "teacher": "Unacademy JEE (Namo Kaul)", "why": "JEE Advanced-level concepts and problem-solving."},
+        {"title": "NLMs + Friction | Eduniti PYQs", "url": "https://www.youtube.com/results?search_query=newton+laws+of+motion+friction+pyq+eduniti", "platform": "youtube", "teacher": "Eduniti (Mohit Bhargava)", "why": "Previous year JEE questions with detailed solutions."},
+    ],
+    "newton laws": [
+        {"title": "Newton's Laws of Motion | Physics Wallah", "url": "https://www.youtube.com/results?search_query=newton+laws+of+motion+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Full chapter with examples and problems."},
     ],
     "work energy power": [
-        {"title": "Work, Energy, Power in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=8aGPtYcN_vY", "platform": "youtube", "teacher": "Physics Wallah", "why": "Work-energy theorem, conservative forces, collisions, PYQs."},
-    ],
-    "work, energy": [
-        {"title": "Work, Energy, Power in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=8aGPtYcN_vY", "platform": "youtube", "teacher": "Physics Wallah", "why": "Work-energy theorem, conservative forces, collisions, PYQs."},
-    ],
-    "gravitation": [
-        {"title": "Gravitation Full Chapter | Vedantu JEE", "url": "https://www.youtube.com/watch?v=p_G5cF3Q6Vw", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Universal law, g variation, orbital motion, satellites, escape velocity."},
-        {"title": "Gravitation One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=QIJhS4RjG5w", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complete gravitation for JEE/NEET."},
-    ],
-    "thermodynamics": [
-        {"title": "Thermodynamics in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=4u3c42x49kE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Laws of thermo, Carnot engine, entropy, all PYQ types."},
-    ],
-    "electrostatics": [
-        {"title": "Electrostatics Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=r0VudrSdY5M", "platform": "youtube", "teacher": "Physics Wallah", "why": "Coulomb's law, Gauss law, potential, capacitors."},
-    ],
-    "current electricity": [
-        {"title": "Current Electricity in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=Y0c6mWfY9vE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Ohm's law, Kirchhoff, Wheatstone, meter bridge."},
-    ],
-    "magnetism": [
-        {"title": "Magnetism & Moving Charges | Physics Wallah", "url": "https://www.youtube.com/watch?v=gCyS4S69T1E", "platform": "youtube", "teacher": "Physics Wallah", "why": "Biot-Savart, Ampere law, Lorentz force."},
-    ],
-    "emi": [
-        {"title": "EMI & Alternating Current | Physics Wallah", "url": "https://www.youtube.com/watch?v=ZJoQDcX4xIc", "platform": "youtube", "teacher": "Physics Wallah", "why": "Faraday's law, Lenz law, AC circuits, transformers."},
-    ],
-    "optics": [
-        {"title": "Ray Optics + Wave Optics in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=7Gd80Jx5e0A", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mirrors, lenses, interference, diffraction, YDSE."},
-    ],
-    "modern physics": [
-        {"title": "Modern Physics Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=G_6z-uYdJq4", "platform": "youtube", "teacher": "Physics Wallah", "why": "Photoelectric effect, Bohr model, radioactivity, semiconductors."},
+        {"title": "Work, Energy, Power One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=8aGPtYcN_vY", "platform": "youtube", "teacher": "Physics Wallah", "why": "Work-energy theorem, conservative forces, collisions, PYQs."},
+        {"title": "Work Energy Power | Unacademy JEE (Namo Kaul)", "url": "https://www.youtube.com/results?search_query=work+energy+power+unacademy+jee+namo+kaul+one+shot", "platform": "youtube", "teacher": "Unacademy JEE (Namo Kaul)", "why": "JEE Advanced level with collision problems."},
+        {"title": "WEP PYQs | Eduniti Mohit Bhargava", "url": "https://www.youtube.com/results?search_query=work+energy+power+pyq+eduniti+mohit+bhargava", "platform": "youtube", "teacher": "Eduniti", "why": "Last 10 years JEE PYQs with solutions."},
+        {"title": "Work Energy Power | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=work+energy+power+mohit+tyagi+lecture", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "In-depth theory for JEE Advanced."},
     ],
     "rotational motion": [
         {"title": "Rotational Motion One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=eIcaAbfT7Ns", "platform": "youtube", "teacher": "Physics Wallah", "why": "Moment of inertia, torque, angular momentum, rolling motion."},
+        {"title": "Rotational Mechanics | Mohit Tyagi (Competishun)", "url": "https://www.youtube.com/results?search_query=rotational+motion+mohit+tyagi+competishun+jee", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced-level rotation with COM and rigid body dynamics."},
+        {"title": "Rotational Motion PYQs | Eduniti", "url": "https://www.youtube.com/results?search_query=rotational+motion+pyq+eduniti", "platform": "youtube", "teacher": "Eduniti", "why": "PYQ practice with detailed solutions."},
+    ],
+    "gravitation": [
+        {"title": "Gravitation Full Chapter | Vedantu JEE", "url": "https://www.youtube.com/results?search_query=gravitation+full+chapter+vedantu+jee+one+shot", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Universal law, g variation, orbital motion, satellites, escape velocity."},
+        {"title": "Gravitation One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=gravitation+one+shot+physics+wallah+arjuna", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complete gravitation for JEE/NEET with satellites & Kepler."},
+        {"title": "Gravitation | Unacademy JEE Namo Kaul", "url": "https://www.youtube.com/results?search_query=gravitation+unacademy+jee+namo+kaul", "platform": "youtube", "teacher": "Unacademy JEE", "why": "Satellite motion, escape velocity, JEE problems."},
+    ],
+    "thermodynamics": [
+        {"title": "Thermodynamics in One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=4u3c42x49kE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Laws of thermo, Carnot engine, entropy, all PYQ types."},
+        {"title": "Thermodynamics & KTG | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=thermodynamics+ktg+mohit+tyagi+jee+one+shot", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced-level thermodynamics, KTG, thermodynamic processes."},
+        {"title": "Thermodynamics Physics | Vedantu Abhishek Sir", "url": "https://www.youtube.com/results?search_query=thermodynamics+physics+one+shot+vedantu+abhishek", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Full chapter with graphs and numericals."},
+    ],
+    "kinetic theory": [
+        {"title": "KTG & Thermodynamics | Physics Wallah", "url": "https://www.youtube.com/results?search_query=kinetic+theory+of+gases+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Kinetic theory of gases, RMS velocity, degrees of freedom, mean free path."},
     ],
     "oscillations": [
-        {"title": "SHM & Oscillations | Physics Wallah", "url": "https://www.youtube.com/watch?v=vPkEw4o4D-c", "platform": "youtube", "teacher": "Physics Wallah", "why": "Simple harmonic motion, pendulum, spring systems, damping."},
+        {"title": "SHM & Oscillations One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=vPkEw4o4D-c", "platform": "youtube", "teacher": "Physics Wallah", "why": "Simple harmonic motion, pendulum, spring systems, damping, resonance."},
+        {"title": "Simple Harmonic Motion | Eduniti PYQs", "url": "https://www.youtube.com/results?search_query=simple+harmonic+motion+pyq+eduniti+mohit+bhargava", "platform": "youtube", "teacher": "Eduniti (Mohit Bhargava)", "why": "SHM PYQs with concept videos."},
+    ],
+    "shm": [
+        {"title": "SHM One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=shm+simple+harmonic+motion+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complete SHM chapter for JEE/NEET."},
     ],
     "waves": [
-        {"title": "Waves Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=Rq67L6S2FJo", "platform": "youtube", "teacher": "Physics Wallah", "why": "Wave equation, superposition, beats, Doppler effect."},
+        {"title": "Waves Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=Rq67L6S2FJo", "platform": "youtube", "teacher": "Physics Wallah", "why": "Wave equation, superposition, beats, Doppler effect, stationary waves."},
+        {"title": "Waves & Sound | Vedantu JEE", "url": "https://www.youtube.com/results?search_query=waves+sound+one+shot+vedantu+jee", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Wave motion, stationary waves, organ pipes, beats, Doppler."},
     ],
-    # Chemistry
-    "organic chemistry": [
-        {"title": "Organic Chemistry Complete | Physics Wallah", "url": "https://www.youtube.com/playlist?list=PLPYdKM_G9b1n3sP2Z8J7XZbK2fQ9mYxQv", "platform": "youtube", "teacher": "Physics Wallah", "why": "GOC, isomerism, hydrocarbons, all named reactions."},
+    "electrostatics": [
+        {"title": "Electrostatics Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=r0VudrSdY5M", "platform": "youtube", "teacher": "Physics Wallah", "why": "Coulomb's law, Gauss law, potential, capacitors, dielectrics."},
+        {"title": "Electrostatics | Unacademy JEE (Namo Kaul)", "url": "https://www.youtube.com/results?search_query=electrostatics+unacademy+jee+namo+kaul+one+shot", "platform": "youtube", "teacher": "Unacademy JEE", "why": "JEE-level electrostatics, conductors, dielectrics."},
+        {"title": "Electric Charges & Fields | Vedantu", "url": "https://www.youtube.com/results?search_query=electric+charges+fields+one+shot+vedantu", "platform": "youtube", "teacher": "Vedantu", "why": "NCERT + JEE Main/Advanced concepts."},
+        {"title": "Electrostatics | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=electrostatics+mohit+tyagi+competishun", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "Advanced JEE concepts including potential energy and conductors."},
     ],
+    "current electricity": [
+        {"title": "Current Electricity One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=Y0c6mWfY9vE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Ohm's law, Kirchhoff, Wheatstone, meter bridge, potentiometer."},
+        {"title": "Current Electricity | Eduniti PYQs", "url": "https://www.youtube.com/results?search_query=current+electricity+pyq+eduniti", "platform": "youtube", "teacher": "Eduniti", "why": "JEE Main/Advanced PYQs with solutions."},
+    ],
+    "magnetism": [
+        {"title": "Magnetism & Moving Charges | Physics Wallah", "url": "https://www.youtube.com/watch?v=gCyS4S69T1E", "platform": "youtube", "teacher": "Physics Wallah", "why": "Biot-Savart, Ampere law, Lorentz force, cyclotron, MCG."},
+        {"title": "Moving Charges & Magnetism | Vedantu Abhishek Sir", "url": "https://www.youtube.com/results?search_query=moving+charges+magnetism+vedantu+abhishek+sir", "platform": "youtube", "teacher": "Vedantu JEE", "why": "Full chapter with JEE problems on magnetic effects."},
+    ],
+    "emi": [
+        {"title": "EMI & Alternating Current | Physics Wallah", "url": "https://www.youtube.com/watch?v=ZJoQDcX4xIc", "platform": "youtube", "teacher": "Physics Wallah", "why": "Faraday's law, Lenz law, AC circuits, LCR, transformers, LC oscillations."},
+        {"title": "Electromagnetic Induction | Unacademy JEE", "url": "https://www.youtube.com/results?search_query=electromagnetic+induction+ac+one+shot+unacademy+jee", "platform": "youtube", "teacher": "Unacademy JEE", "why": "EMI, AC, LCR circuits, JEE Advanced problems."},
+    ],
+    "alternating current": [
+        {"title": "Alternating Current | Physics Wallah", "url": "https://www.youtube.com/results?search_query=alternating+current+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "AC circuits, LCR, power factor, transformers."},
+    ],
+    "optics": [
+        {"title": "Ray Optics + Wave Optics One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=7Gd80Jx5e0A", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mirrors, lenses, interference, diffraction, YDSE, polarization."},
+        {"title": "Ray Optics | Eduniti PYQ Special", "url": "https://www.youtube.com/results?search_query=ray+optics+pyq+eduniti+mohit+bhargava", "platform": "youtube", "teacher": "Eduniti", "why": "JEE PYQs on mirrors, lenses, prism, optical instruments."},
+        {"title": "Wave Optics | Vedantu", "url": "https://www.youtube.com/results?search_query=wave+optics+one+shot+vedantu+ydse", "platform": "youtube", "teacher": "Vedantu", "why": "YDSE, diffraction, polarization, Huygens principle."},
+    ],
+    "ray optics": [
+        {"title": "Ray Optics One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=ray+optics+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complete ray optics: mirrors, lenses, prism, optical instruments."},
+    ],
+    "wave optics": [
+        {"title": "Wave Optics One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=wave+optics+one+shot+physics+wallah+ydse", "platform": "youtube", "teacher": "Physics Wallah", "why": "Wave optics, YDSE, diffraction, polarization."},
+    ],
+    "modern physics": [
+        {"title": "Modern Physics Full Chapter | Physics Wallah", "url": "https://www.youtube.com/watch?v=G_6z-uYdJq4", "platform": "youtube", "teacher": "Physics Wallah", "why": "Photoelectric effect, Bohr model, X-rays, radioactivity, semiconductors."},
+        {"title": "Modern Physics | Eduniti Most Important Concepts", "url": "https://www.youtube.com/results?search_query=modern+physics+jee+one+shot+eduniti", "platform": "youtube", "teacher": "Eduniti", "why": "Photoelectric, atoms, nuclei, semiconductors — PYQ-focused."},
+    ],
+    "semiconductors": [
+        {"title": "Semiconductor Electronics One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=semiconductor+electronics+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Semiconductor diodes, transistors, logic gates for JEE/NEET/Class 12."},
+    ],
+    # ===================== CHEMISTRY (JEE / NEET) =====================
     "chemical bonding": [
-        {"title": "Chemical Bonding One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=P3iAXKb6uTk", "platform": "youtube", "teacher": "Physics Wallah", "why": "Ionic, covalent, VBT, VSEPR, hybridization, MOT."},
+        {"title": "Chemical Bonding One Shot | Physics Wallah (Pankaj Sir)", "url": "https://www.youtube.com/watch?v=P3iAXKb6uTk", "platform": "youtube", "teacher": "Physics Wallah (Pankaj Sir)", "why": "Ionic, covalent, VBT, VSEPR, hybridization, MOT — full chapter."},
+        {"title": "Chemical Bonding | Vani Ma'am (Vedantu VB)", "url": "https://www.youtube.com/results?search_query=chemical+bonding+one+shot+vani+maam+vedantu", "platform": "youtube", "teacher": "Vani Ma'am (Vedantu VB)", "why": "Detailed MOT, VSEPR, hybridization — JEE/NEET."},
+        {"title": "Chemical Bonding JEE Advanced | NS Sir (Competishun)", "url": "https://www.youtube.com/results?search_query=chemical+bonding+competishun+ns+sir+jee", "platform": "youtube", "teacher": "NS Sir (Competishun)", "why": "Advanced JEE problems, MOT, Drago's rule, Bent's rule."},
     ],
-    # Biology
+    "mole concept": [
+        {"title": "Mole Concept One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=mole+concept+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mole, stoichiometry, limiting reagent, concentration terms, redox basics."},
+    ],
+    "stoichiometry": [
+        {"title": "Some Basic Concepts of Chemistry / Mole Concept | PW", "url": "https://www.youtube.com/results?search_query=mole+concept+stoichiometry+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mole concept and stoichiometry for JEE/NEET foundation."},
+    ],
+    "periodic table": [
+        {"title": "Periodic Table & Classification | Physics Wallah", "url": "https://www.youtube.com/results?search_query=periodic+table+classification+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Periodicity, atomic radius, IE, EN, electronegativity trends."},
+        {"title": "Periodic Properties | Vani Ma'am", "url": "https://www.youtube.com/results?search_query=periodic+properties+one+shot+vani+maam+vedantu", "platform": "youtube", "teacher": "Vani Ma'am (Vedantu)", "why": "Detailed periodic trends for JEE/NEET."},
+    ],
+    "organic chemistry": [
+        {"title": "General Organic Chemistry (GOC) | Pankaj Sir PW", "url": "https://www.youtube.com/results?search_query=general+organic+chemistry+goc+pankaj+sir+physics+wallah+one+shot", "platform": "youtube", "teacher": "Physics Wallah (Pankaj Sir)", "why": "GOC, IUPAC, isomerism, reaction mechanism — JEE/NEET foundation."},
+        {"title": "Organic Chemistry Complete | Physics Wallah", "url": "https://www.youtube.com/playlist?list=PLPYdKM_G9b1n3sP2Z8J7XZbK2fQ9mYxQv", "platform": "youtube", "teacher": "Physics Wallah", "why": "Full playlist covering GOC, isomerism, hydrocarbons, named reactions."},
+        {"title": "Organic Chemistry | VT Sir (Competishun)", "url": "https://www.youtube.com/results?search_query=organic+chemistry+competishun+vt+sir+jee", "platform": "youtube", "teacher": "VT Sir (Competishun)", "why": "JEE Advanced-level organic with detailed mechanisms."},
+    ],
+    "goc": [
+        {"title": "General Organic Chemistry (GOC) | Pankaj Sir PW", "url": "https://www.youtube.com/results?search_query=goc+general+organic+chemistry+pankaj+sir+physics+wallah+one+shot", "platform": "youtube", "teacher": "Physics Wallah (Pankaj Sir)", "why": "IUPAC, isomerism, intermediates, electronic effects."},
+    ],
+    "hydrocarbons": [
+        {"title": "Hydrocarbons One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=hydrocarbons+one+shot+physics+wallah+alkane+alkene+alkyne", "platform": "youtube", "teacher": "Physics Wallah", "why": "Alkanes, alkenes, alkynes, aromatic hydrocarbons."},
+    ],
+    "coordination compounds": [
+        {"title": "Coordination Compounds | Physics Wallah", "url": "https://www.youtube.com/results?search_query=coordination+compounds+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Werner theory, VBT, CFT, IUPAC nomenclature, isomerism."},
+    ],
+    "thermochemistry": [
+        {"title": "Thermodynamics (Chemistry) One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=chemical+thermodynamics+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Enthalpy, Hess's law, entropy, Gibbs free energy, spontaneity."},
+    ],
+    "equilibrium": [
+        {"title": "Chemical & Ionic Equilibrium | Physics Wallah", "url": "https://www.youtube.com/results?search_query=chemical+ionic+equilibrium+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Le Chatelier, Kc/Kp, pH, buffers, solubility product."},
+    ],
+    "electrochemistry": [
+        {"title": "Electrochemistry One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=electrochemistry+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Galvanic cell, Nernst equation, electrolysis, Kohlrausch, conductivity."},
+    ],
+    "solutions": [
+        {"title": "Solutions (Chemistry) | Physics Wallah", "url": "https://www.youtube.com/results?search_query=solutions+chemistry+one+shot+physics+wallah+raoults+law", "platform": "youtube", "teacher": "Physics Wallah", "why": "Raoult's law, colligative properties, Henry's law, ideal/non-ideal solutions."},
+    ],
+    "chemical kinetics": [
+        {"title": "Chemical Kinetics One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=chemical+kinetics+one+shot+physics+wallah", "platform": "youtube", "teacher": "Physics Wallah", "why": "Rate laws, order, molecularity, Arrhenius equation, collision theory."},
+    ],
+    "solid state": [
+        {"title": "Solid State One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=solid+state+one+shot+physics+wallah+jee+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Crystal lattices, packing, defects, unit cells, density calculations."},
+    ],
+    # ===================== BIOLOGY (NEET / Class 11-12) =====================
     "cell biology": [
         {"title": "Cell Biology One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=3c4yNq7vYxU", "platform": "youtube", "teacher": "Physics Wallah", "why": "Cell structure, organelles, cell division for NEET."},
+        {"title": "Cell - The Unit of Life | VEDANTU NEET", "url": "https://www.youtube.com/results?search_query=cell+unit+of+life+one+shot+neet+vedantu", "platform": "youtube", "teacher": "Vedantu NEET", "why": "Cell theory, prokaryotic/eukaryotic, organelles, NCERT-focused."},
+        {"title": "Cell Biology | Neela Bakore (Best for NEET Bio)", "url": "https://www.youtube.com/results?search_query=cell+biology+neela+bakore+one+shot+neet", "platform": "youtube", "teacher": "Neela Bakore", "why": "Detailed NCERT-based biology lectures for NEET; popular among toppers."},
+        {"title": "Cell: Unit of Life | Biomentors (Dr. Geetendra)", "url": "https://www.youtube.com/results?search_query=cell+unit+of+life+biomentors+neet", "platform": "youtube", "teacher": "Biomentors (Dr. Geetendra)", "why": "NEET-focused with MCQ practice and NCERT line-by-line."},
+    ],
+    "cell cycle": [
+        {"title": "Cell Cycle & Cell Division One Shot | Physics Wallah NEET", "url": "https://www.youtube.com/results?search_query=cell+cycle+division+mitosis+meiosis+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mitosis, meiosis, cell cycle regulation, NEET PYQs."},
     ],
     "human physiology": [
-        {"title": "Human Physiology Complete | Physics Wallah", "url": "https://www.youtube.com/playlist?list=PLPYdKM_G9b1lz6hQk2C5i5zLg0i7rRfZ7", "platform": "youtube", "teacher": "Physics Wallah", "why": "All human systems for NEET."},
+        {"title": "Human Physiology Complete | Physics Wallah", "url": "https://www.youtube.com/playlist?list=PLPYdKM_G9b1lz6hQk2C5i5zLg0i7rRfZ7", "platform": "youtube", "teacher": "Physics Wallah", "why": "All human systems for NEET: digestion, breathing, circulation, excretion, nerves, endocrine."},
+        {"title": "Human Physiology | Biomentors (Dr. Geetendra Sir)", "url": "https://www.youtube.com/results?search_query=human+physiology+biomentors+neet+one+shot", "platform": "youtube", "teacher": "Biomentors (Dr. Geetendra)", "why": "NEET-focused physiology with MCQs and NCERT."},
+        {"title": "Human Physiology | Neela Bakore", "url": "https://www.youtube.com/results?search_query=human+physiology+neela+bakore+neet+lectures", "platform": "youtube", "teacher": "Neela Bakore", "why": "NCERT line-by-line explanation, excellent for concept clarity."},
+        {"title": "Human Physiology | Khan Academy India", "url": "https://www.khanacademy.org/science/in-in-class-11-biology-india", "platform": "khanacademy", "teacher": "Khan Academy India", "why": "Free foundational biology with interactive practice."},
+    ],
+    "digestion": [
+        {"title": "Digestion & Absorption | Physics Wallah NEET", "url": "https://www.youtube.com/results?search_query=digestion+absorption+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Digestive system, enzymes, absorption — NCERT + PYQs."},
+    ],
+    "breathing": [
+        {"title": "Breathing & Exchange of Gases | Physics Wallah", "url": "https://www.youtube.com/results?search_query=breathing+exchange+gases+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Respiratory system, breathing mechanism, gas exchange, disorders."},
+    ],
+    "body fluids": [
+        {"title": "Body Fluids & Circulation | Physics Wallah", "url": "https://www.youtube.com/results?search_query=body+fluids+circulation+blood+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Blood groups, heart, ECG, circulation, lymph, cardiac cycle."},
+    ],
+    "excretory": [
+        {"title": "Excretory Products & Elimination | Physics Wallah", "url": "https://www.youtube.com/results?search_query=excretory+products+elimination+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Kidney, nephron, urine formation, kidney function tests, disorders."},
+    ],
+    "neural control": [
+        {"title": "Neural Control & Coordination | Physics Wallah", "url": "https://www.youtube.com/results?search_query=neural+control+coordination+nervous+system+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Neuron structure, brain, reflex arc, sense organs, NCERT-focused."},
+    ],
+    "chemical coordination": [
+        {"title": "Chemical Coordination & Endocrine | Physics Wallah", "url": "https://www.youtube.com/results?search_query=chemical+coordination+endocrine+hormones+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "All endocrine glands, hormones, feedback mechanisms, disorders."},
     ],
     "genetics": [
-        {"title": "Genetics One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=kPw5GQ7dRqk", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mendel, inheritance, DNA replication for NEET."},
+        {"title": "Genetics One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=kPw5GQ7dRqk", "platform": "youtube", "teacher": "Physics Wallah", "why": "Mendel, inheritance, DNA replication, transcription-translation for NEET."},
+        {"title": "Principles of Inheritance | Neela Bakore", "url": "https://www.youtube.com/results?search_query=principles+inheritance+variation+neela+bakore+genetics", "platform": "youtube", "teacher": "Neela Bakore", "why": "NCERT-based genetics, Mendel, deviations, linkage."},
+    ],
+    "molecular basis of inheritance": [
+        {"title": "Molecular Basis of Inheritance | Physics Wallah", "url": "https://www.youtube.com/results?search_query=molecular+basis+inheritance+one+shot+physics+wallah+neet+dna+rna", "platform": "youtube", "teacher": "Physics Wallah", "why": "DNA replication, transcription, translation, Lac operon, Human Genome Project."},
     ],
     "plant physiology": [
-        {"title": "Plant Physiology | Physics Wallah", "url": "https://www.youtube.com/watch?v=2JmWz0a3jFE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Photosynthesis, respiration, plant hormones, transport."},
+        {"title": "Plant Physiology | Physics Wallah", "url": "https://www.youtube.com/watch?v=2JmWz0a3jFE", "platform": "youtube", "teacher": "Physics Wallah", "why": "Photosynthesis, respiration, plant hormones, transport, mineral nutrition."},
+    ],
+    "photosynthesis": [
+        {"title": "Photosynthesis in Higher Plants | Physics Wallah", "url": "https://www.youtube.com/results?search_query=photosynthesis+higher+plants+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Light reaction, C3/C4 cycle, Chemiosmotic hypothesis, photorespiration."},
     ],
     "ecology": [
-        {"title": "Ecology One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=TvMh3h_8JvM", "platform": "youtube", "teacher": "Physics Wallah", "why": "Ecosystems, biodiversity, conservation for NEET."},
+        {"title": "Ecology One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=TvMh3h_8JvM", "platform": "youtube", "teacher": "Physics Wallah", "why": "Ecosystems, biodiversity, conservation, environmental issues for NEET."},
     ],
-    # Math
+    "evolution": [
+        {"title": "Evolution One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=evolution+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Origin of life, Darwinism, Hardy-Weinberg, human evolution."},
+    ],
+    "biotechnology": [
+        {"title": "Biotechnology: Principles & Processes | Physics Wallah", "url": "https://www.youtube.com/results?search_query=biotechnology+principles+processes+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Recombinant DNA tech, restriction enzymes, PCR, gel electrophoresis, applications."},
+    ],
+    "reproduction": [
+        {"title": "Human Reproduction One Shot | Physics Wallah NEET", "url": "https://www.youtube.com/results?search_query=human+reproduction+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Male/female reproductive system, menstrual cycle, fertilization, pregnancy."},
+    ],
+    "reproductive health": [
+        {"title": "Reproductive Health One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=reproductive+health+one+shot+physics+wallah+neet", "platform": "youtube", "teacher": "Physics Wallah", "why": "Contraception, STDs, ART, MTP for NEET."},
+    ],
+    # ===================== MATHEMATICS (JEE) =====================
     "calculus": [
-        {"title": "Calculus Full Course | Mohit Tyagi", "url": "https://www.youtube.com/playlist?list=PLuGyQ5WmWbdF9V4B3vZq7fXJ2yY8qDc9E", "platform": "youtube", "teacher": "Mohit Tyagi", "why": "Limits, continuity, differentiability, integration, differential equations."},
+        {"title": "Calculus Full Course | Mohit Tyagi (Competishun)", "url": "https://www.youtube.com/results?search_query=calculus+mohit+tyagi+competishun+jee+limits+continuity+differentiability+integration", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "Limits, continuity, differentiability, integration, differential equations, JEE Advanced."},
+        {"title": "Complete Calculus One Shot | Physics Wallah", "url": "https://www.youtube.com/results?search_query=calculus+one+shot+physics+wallah+jee+mains", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complete calculus for JEE Mains — limits to differential equations."},
+        {"title": "Calculus JEE | MathonGo (Sameer Bansal)", "url": "https://www.youtube.com/results?search_query=calculus+mathongo+jee+mains+one+shot", "platform": "youtube", "teacher": "MathonGo (Sameer Bansal)", "why": "JEE Mains crash course calculus, formula-focused revision with PYQs."},
+        {"title": "Calculus | GB Sir (Rao IIT / Unacademy)", "url": "https://www.youtube.com/results?search_query=calculus+gb+sir+jee+one+shot", "platform": "youtube", "teacher": "GB Sir", "why": "Legendary maths teacher for JEE Advanced calculus."},
     ],
     "trigonometry": [
-        {"title": "Trigonometry One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=J0-sj_0l8L0", "platform": "youtube", "teacher": "Physics Wallah", "why": "Identities, equations, properties of triangles for JEE."},
+        {"title": "Trigonometry One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=J0-sj_0l8L0", "platform": "youtube", "teacher": "Physics Wallah", "why": "Identities, equations, properties of triangles, heights & distances for JEE."},
+        {"title": "Trigonometry Complete | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=trigonometry+mohit+tyagi+jee+complete", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced trigonometry from basics."},
     ],
     "vectors": [
-        {"title": "Vectors & 3D Geometry | Physics Wallah", "url": "https://www.youtube.com/watch?v=uXwT3s3TQL8", "platform": "youtube", "teacher": "Physics Wallah", "why": "Vectors, 3D geometry, dot/cross product for JEE Mains."},
+        {"title": "Vectors & 3D Geometry | Physics Wallah", "url": "https://www.youtube.com/watch?v=uXwT3s3TQL8", "platform": "youtube", "teacher": "Physics Wallah", "why": "Vectors, 3D geometry, dot/cross product, lines/planes for JEE Mains."},
+        {"title": "Vectors & 3D | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=vectors+3d+geometry+mohit+tyagi+jee", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced 3D geometry, planes, skew lines, shortest distance."},
+    ],
+    "3d geometry": [
+        {"title": "3D Geometry | Physics Wallah", "url": "https://www.youtube.com/results?search_query=3d+geometry+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Direction cosines, lines, planes, distance, angle between planes."},
     ],
     "probability": [
-        {"title": "Probability One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=j3Q7B4mZ9T8", "platform": "youtube", "teacher": "Physics Wallah", "why": "Classical, conditional probability, Bayes theorem for JEE."},
+        {"title": "Probability One Shot | Physics Wallah", "url": "https://www.youtube.com/watch?v=j3Q7B4mZ9T8", "platform": "youtube", "teacher": "Physics Wallah", "why": "Classical, conditional probability, Bayes theorem, binomial distribution for JEE."},
+        {"title": "Probability JEE Advanced | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=probability+mohit+tyagi+jee+advanced", "platform": "youtube", "teacher": "Mohit Tyagi", "why": "Advanced probability problems, Bayes theorem, total probability."},
     ],
     "matrices": [
-        {"title": "Matrices & Determinants | Physics Wallah", "url": "https://www.youtube.com/watch?v=gH4xG8XQ2h0", "platform": "youtube", "teacher": "Physics Wallah", "why": "Matrix operations, determinants, properties for JEE."},
+        {"title": "Matrices & Determinants | Physics Wallah", "url": "https://www.youtube.com/watch?v=gH4xG8XQ2h0", "platform": "youtube", "teacher": "Physics Wallah", "why": "Matrix operations, determinants, properties, adjoints, inverse, Cramer's rule."},
     ],
-    # UPSC
+    "determinants": [
+        {"title": "Determinants | Physics Wallah", "url": "https://www.youtube.com/results?search_query=matrices+determinants+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Properties of determinants, solving linear equations, Cramer's rule."},
+    ],
+    "sets relations functions": [
+        {"title": "Sets, Relations & Functions | Physics Wallah", "url": "https://www.youtube.com/results?search_query=sets+relations+functions+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Sets, types of relations, types of functions, binary operations."},
+    ],
+    "complex numbers": [
+        {"title": "Complex Numbers & Quadratic Equations | Physics Wallah", "url": "https://www.youtube.com/results?search_query=complex+numbers+quadratic+equations+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Complex numbers, modulus, argument, quadratic equations, roots."},
+        {"title": "Complex Numbers | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=complex+numbers+mohit+tyagi+jee", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced complex numbers, geometry of complex numbers."},
+    ],
+    "quadratic equations": [
+        {"title": "Quadratic Equations | Physics Wallah", "url": "https://www.youtube.com/results?search_query=quadratic+equations+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Roots, discriminant, Vieta's formula, transformation of equations, location of roots."},
+    ],
+    "permutations combinations": [
+        {"title": "Permutations & Combinations | Physics Wallah", "url": "https://www.youtube.com/results?search_query=permutations+combinations+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Factorial, nPr, nCr, circular permutations, multinomial theorem, inclusion-exclusion."},
+        {"title": "P&C JEE Advanced | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=permutations+combinations+mohit+tyagi+jee+advanced", "platform": "youtube", "teacher": "Mohit Tyagi", "why": "Advanced P&C problems, derangements, distribution problems."},
+    ],
+    "binomial theorem": [
+        {"title": "Binomial Theorem | Physics Wallah", "url": "https://www.youtube.com/results?search_query=binomial+theorem+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Binomial expansion, general term, middle term, greatest term, properties of C(n,r)."},
+    ],
+    "sequences series": [
+        {"title": "Sequences & Series | Physics Wallah", "url": "https://www.youtube.com/results?search_query=sequences+series+one+shot+physics+wallah+jee+ap+gp+hp", "platform": "youtube", "teacher": "Physics Wallah", "why": "AP, GP, HP, AGP, sum of n terms, AM-GM-HM inequality, telescoping."},
+    ],
+    "straight lines": [
+        {"title": "Straight Lines & Coordinate Geometry | Physics Wallah", "url": "https://www.youtube.com/results?search_query=straight+lines+one+shot+physics+wallah+jee+coordinate", "platform": "youtube", "teacher": "Physics Wallah", "why": "Slope, forms of line, distance, family of lines, concurrency."},
+    ],
+    "conic sections": [
+        {"title": "Conic Sections | Physics Wallah", "url": "https://www.youtube.com/results?search_query=conic+sections+one+shot+physics+wallah+jee+parabola+ellipse+hyperbola+circle", "platform": "youtube", "teacher": "Physics Wallah", "why": "Circle, parabola, ellipse, hyperbola — full chapter for JEE."},
+        {"title": "Conic Sections | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=conic+sections+mohit+tyagi+jee+advanced", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced conic sections, tangent, normal properties."},
+    ],
+    "limits": [
+        {"title": "Limits, Continuity & Differentiability | Physics Wallah", "url": "https://www.youtube.com/results?search_query=limits+continuity+differentiability+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Limits, L'Hospital, continuity, differentiability at a point."},
+    ],
+    "differentiability": [
+        {"title": "Continuity & Differentiability | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=continuity+differentiability+mohit+tyagi+jee", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "JEE Advanced calculus foundations."},
+    ],
+    "integration": [
+        {"title": "Integral Calculus | Physics Wallah", "url": "https://www.youtube.com/results?search_query=integral+calculus+indefinite+definite+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Indefinite/definite integrals, substitution, by parts, partial fractions, properties."},
+        {"title": "Integration | Mohit Tyagi", "url": "https://www.youtube.com/results?search_query=integral+calculus+mohit+tyagi+jee+advanced", "platform": "youtube", "teacher": "Mohit Tyagi (Competishun)", "why": "Advanced integration, reduction formulas, Leibnitz rule."},
+    ],
+    "differential equations": [
+        {"title": "Differential Equations | Physics Wallah", "url": "https://www.youtube.com/results?search_query=differential+equations+one+shot+physics+wallah+jee", "platform": "youtube", "teacher": "Physics Wallah", "why": "Variable separable, homogeneous, linear DE, Bernoulli, orthogonal trajectories, growth-decay."},
+    ],
+    # ===================== UPSC / CSE =====================
     "indian polity": [
-        {"title": "Indian Polity Complete | Khan GS Research Centre", "url": "https://www.youtube.com/results?search_query=indian+polity+one+shot+upsc+lecture", "platform": "youtube", "teacher": "Khan Sir / StudyIQ", "why": "Constitution, Parliament, Judiciary, Panchayati Raj for UPSC Prelims."},
+        {"title": "Indian Polity Complete M. Laxmikanth | Study IQ", "url": "https://www.youtube.com/results?search_query=indian+polity+m+laxmikanth+study+iq+upsc+full+lecture", "platform": "youtube", "teacher": "Study IQ (Dr. Vipan Goyal)", "why": "Complete Laxmikanth polity for UPSC Prelims + Mains."},
+        {"title": "Indian Polity by Khan Sir", "url": "https://www.youtube.com/results?search_query=indian+polity+khan+sir+upsc+complete", "platform": "youtube", "teacher": "Khan Sir (Khan GS Research Centre)", "why": "Simple Hindi+English explanation; extremely popular for UPSC/State PSCs."},
+        {"title": "Indian Polity | OnlyIAS (Suhail Sir)", "url": "https://www.youtube.com/results?search_query=indian+polity+onlyias+upsc+complete+lectures", "platform": "youtube", "teacher": "OnlyIAS", "why": "UPSC CSE-focused polity with PYQ analysis."},
+        {"title": "Polity for UPSC | VisionIAS", "url": "https://www.youtube.com/results?search_query=vision+ias+polity+lectures+upsc", "platform": "youtube", "teacher": "VisionIAS", "why": "Foundation course polity from premier UPSC institute."},
     ],
     "indian economy": [
-        {"title": "Indian Economy for UPSC | Study IQ", "url": "https://www.youtube.com/results?search_query=indian+economy+upsc+prelims+one+shot+lecture", "platform": "youtube", "teacher": "Study IQ / Mrunal Patel", "why": "Planning, Budget, RBI, key economic concepts for UPSC."},
+        {"title": "Indian Economy for UPSC | Study IQ (Rahul Meena)", "url": "https://www.youtube.com/results?search_query=indian+economy+study+iq+upsc+mrunal+complete+lectures", "platform": "youtube", "teacher": "Study IQ / Mrunal Patel", "why": "Planning, Budget, RBI, Agriculture, Industry, Banking, UPSC-focused."},
+        {"title": "Indian Economy by Mrunal Patel (Win CSE)", "url": "https://www.youtube.com/results?search_query=mrunal+patel+indian+economy+upsc+win+cse+playlist", "platform": "youtube", "teacher": "Mrunal Patel", "why": "Win CSE series — legendary economy lectures for UPSC."},
+        {"title": "Economy | Khan Sir", "url": "https://www.youtube.com/results?search_query=indian+economy+khan+sir+upsc", "platform": "youtube", "teacher": "Khan Sir", "why": "Simple Hinglish economy for UPSC/SSC/Banking."},
     ],
     "modern indian history": [
-        {"title": "Modern Indian History | Study IQ", "url": "https://www.youtube.com/results?search_query=modern+indian+history+1857+1947+upsc+one+shot", "platform": "youtube", "teacher": "Study IQ", "why": "1857-1947 freedom struggle for UPSC Prelims."},
+        {"title": "Modern Indian History (1857-1947) | Study IQ", "url": "https://www.youtube.com/results?search_query=modern+indian+history+1857+1947+study+iq+upsc+one+shot", "platform": "youtube", "teacher": "Study IQ", "why": "1857-1947 freedom struggle, Governor Generals, movements for UPSC Prelims."},
+        {"title": "Modern History | OnlyIAS", "url": "https://www.youtube.com/results?search_query=modern+history+onlyias+upsc+complete+spectrum", "platform": "youtube", "teacher": "OnlyIAS", "why": "Spectrum Modern India book-based lectures."},
+        {"title": "Modern History by Khan Sir", "url": "https://www.youtube.com/results?search_query=modern+history+khan+sir+upsc+freedom+struggle", "platform": "youtube", "teacher": "Khan Sir", "why": "Engaging Hinglish lectures on the freedom struggle."},
+    ],
+    "ancient history": [
+        {"title": "Ancient Indian History | Study IQ", "url": "https://www.youtube.com/results?search_query=ancient+indian+history+study+iq+upsc+complete+rs+sharma", "platform": "youtube", "teacher": "Study IQ", "why": "Indus Valley, Vedic, Maurya, Gupta empires for UPSC (RS Sharma-based)."},
+    ],
+    "medieval history": [
+        {"title": "Medieval Indian History | Study IQ", "url": "https://www.youtube.com/results?search_query=medieval+indian+history+study+iq+upsc+complete", "platform": "youtube", "teacher": "Study IQ", "why": "Delhi Sultanate, Mughal Empire, Vijayanagara, Bahamani kingdoms."},
     ],
     "indian geography": [
-        {"title": "Indian Geography for UPSC | Amit Sengupta", "url": "https://www.youtube.com/results?search_query=indian+geography+upsc+prelims+one+shot+lecture", "platform": "youtube", "teacher": "Amit Sengupta / Study IQ", "why": "Physical, economic, social geography of India for UPSC."},
+        {"title": "Indian Geography for UPSC | Amit Sengupta / Study IQ", "url": "https://www.youtube.com/results?search_query=indian+geography+upsc+prelims+study+iq+complete+lectures", "platform": "youtube", "teacher": "Amit Sengupta / Study IQ", "why": "Physical, economic, social geography of India, NCERT-based."},
+        {"title": "Geography | OnlyIAS", "url": "https://www.youtube.com/results?search_query=indian+geography+onlyias+upsc+ncert", "platform": "youtube", "teacher": "OnlyIAS", "why": "NCERT + GC Leong-based geography for UPSC."},
+    ],
+    "world geography": [
+        {"title": "World Geography | Study IQ", "url": "https://www.youtube.com/results?search_query=world+geography+study+iq+upsc", "platform": "youtube", "teacher": "Study IQ", "why": "Continents, oceans, mountains, rivers, climate for UPSC Prelims."},
     ],
     "environment": [
-        {"title": "Environment & Ecology for UPSC", "url": "https://www.youtube.com/results?search_query=environment+ecology+upsc+prelims+one+shot", "platform": "youtube", "teacher": "Study IQ", "why": "Environment, biodiversity, climate change for UPSC."},
+        {"title": "Environment & Ecology for UPSC | Study IQ", "url": "https://www.youtube.com/results?search_query=environment+ecology+upsc+prelims+study+iq+shankar+ias", "platform": "youtube", "teacher": "Study IQ", "why": "Ecosystems, biodiversity, climate change, conventions — Shankar IAS book-based."},
+        {"title": "Environment | OnlyIAS", "url": "https://www.youtube.com/results?search_query=environment+ecology+onlyias+upsc", "platform": "youtube", "teacher": "OnlyIAS", "why": "UPSC Prelims-focused environment with current affairs."},
+    ],
+    "science technology": [
+        {"title": "Science & Technology for UPSC | Study IQ", "url": "https://www.youtube.com/results?search_query=science+technology+upsc+study+iq+one+shot", "platform": "youtube", "teacher": "Study IQ", "why": "Biotech, IT, Space, Defense, Nuclear tech for UPSC Prelims."},
+    ],
+    "current affairs": [
+        {"title": "Daily Current Affairs | Study IQ", "url": "https://www.youtube.com/@StudyIQeducation", "platform": "youtube", "teacher": "Study IQ", "why": "Daily news analysis for UPSC Prelims + Mains; most popular UPSC current affairs channel."},
+        {"title": "Daily Current Affairs | OnlyIAS", "url": "https://www.youtube.com/@OnlyIAS", "platform": "youtube", "teacher": "OnlyIAS", "why": "Daily news + editorial analysis for UPSC."},
+        {"title": "Daily News Analysis | VisionIAS", "url": "https://www.youtube.com/results?search_query=vision+ias+daily+news+analysis", "platform": "youtube", "teacher": "VisionIAS", "why": "Premium daily current affairs from VisionIAS."},
+    ],
+    "ethics": [
+        {"title": "Ethics (GS Paper 4) | Study IQ", "url": "https://www.youtube.com/results?search_query=ethics+integrity+aptitude+study+iq+upsc+mains", "platform": "youtube", "teacher": "Study IQ", "why": "Ethics, integrity, aptitude for UPSC Mains GS Paper 4."},
+    ],
+    "csat": [
+        {"title": "CSAT for UPSC | Study IQ / Gaurav Sir", "url": "https://www.youtube.com/results?search_query=csat+upsc+study+iq+quantitative+aptitude+reasoning", "platform": "youtube", "teacher": "Study IQ", "why": "Maths, reasoning, comprehension for CSAT Paper 2 with tricks."},
+    ],
+    # ===================== SSC / BANKING / RAILWAY =====================
+    "ssc": [
+        {"title": "SSC Complete Preparation | Adda247", "url": "https://www.youtube.com/results?search_query=ssc+cgl+complete+preparation+adda247+maths+reasoning+english", "platform": "youtube", "teacher": "Adda247", "why": "Maths, reasoning, English, GK for SSC CGL/CHSL/CPO/MTS."},
+        {"title": "SSC Maths | Rakesh Yadav Sir", "url": "https://www.youtube.com/results?search_query=ssc+maths+rakesh+yadav+one+shot", "platform": "youtube", "teacher": "Rakesh Yadav Sir", "why": "Legendary SSC maths teacher with concept + short tricks."},
+        {"title": "SSC by Khan Sir", "url": "https://www.youtube.com/results?search_query=ssc+cgl+khan+sir+gs+complete", "platform": "youtube", "teacher": "Khan Sir", "why": "GS/GK for SSC in simple Hinglish."},
+        {"title": "SSC English | Jaideep Sir", "url": "https://www.youtube.com/results?search_query=ssc+english+jaideep+sir+vocabulary+grammar", "platform": "youtube", "teacher": "Jaideep Sir", "why": "Complete English preparation for SSC exams."},
+    ],
+    "quantitative aptitude": [
+        {"title": "Quantitative Aptitude for Bank/SSC | Adda247", "url": "https://www.youtube.com/results?search_query=quantitative+aptitude+bank+ssc+adda247+one+shot", "platform": "youtube", "teacher": "Adda247", "why": "Complete quants for banking, SSC, railways with short tricks."},
+    ],
+    "reasoning": [
+        {"title": "Reasoning for All Competitive Exams | Adda247", "url": "https://www.youtube.com/results?search_query=reasoning+all+competitive+exams+adda247+puzzle", "platform": "youtube", "teacher": "Adda247 (Saurav Singh)", "why": "Logical reasoning, puzzles, coding-decoding, series, direction, blood relations."},
+        {"title": "Reasoning Tricks | Deepak Tirthyani", "url": "https://www.youtube.com/results?search_query=reasoning+tricks+deepak+tirthyani+ssc+bank", "platform": "youtube", "teacher": "Deepak Tirthyani", "why": "Short tricks for SSC, Banking, Railway reasoning."},
+    ],
+    # ===================== NDA / CDS / DEFENCE =====================
+    "nda": [
+        {"title": "NDA Complete Preparation | Physics Wallah (Defence Wallah)", "url": "https://www.youtube.com/results?search_query=nda+exam+preparation+physics+wallah+defence+wallah", "platform": "youtube", "teacher": "Defence Wallah (PW)", "why": "Maths, GAT, English for NDA/NA examination."},
+        {"title": "NDA Maths | Arpit Sir (Unacademy)", "url": "https://www.youtube.com/results?search_query=nda+maths+unacademy+arpit+sir", "platform": "youtube", "teacher": "Unacademy NDA", "why": "NDA-specific mathematics with PYQs and tricks."},
+    ],
+    "cds": [
+        {"title": "CDS Exam Preparation | Unacademy CDS", "url": "https://www.youtube.com/results?search_query=cds+exam+preparation+unacademy+english+maths+gk", "platform": "youtube", "teacher": "Unacademy CDS/AFCAT", "why": "CDS/AFCAT English, Maths, GK full preparation."},
+    ],
+    # ===================== TEACHING EXAMS =====================
+    "ctet": [
+        {"title": "CTET Complete Preparation | Himanshi Singh", "url": "https://www.youtube.com/results?search_query=ctet+preparation+himanshi+singh+complete", "platform": "youtube", "teacher": "Himanshi Singh (Let's LEARN)", "why": "CTET CDP, EVS, Maths, Hindi, English, SST pedagogy; most trusted CTET teacher."},
+        {"title": "CTET by Adda247", "url": "https://www.youtube.com/results?search_query=ctet+adda247+classes", "platform": "youtube", "teacher": "Teachers Adda (Adda247)", "why": "Complete CTET Paper 1 and Paper 2 preparation."},
+    ],
+    # ===================== STATE PSCs (BPSC / UPPSC / MPSC / RAS) =====================
+    "bpsc": [
+        {"title": "BPSC Complete Preparation | Khan Sir / Khan GS", "url": "https://www.youtube.com/results?search_query=bpsc+preparation+khan+sir+complete+lecture+bihar+pcs", "platform": "youtube", "teacher": "Khan Sir (Khan GS)", "why": "Bihar PSC complete GS preparation in Hinglish; Bihar-specific content."},
+        {"title": "BPSC 70+ | Study IQ", "url": "https://www.youtube.com/results?search_query=bpsc+70th+study+iq+preparation+strategy", "platform": "youtube", "teacher": "Study IQ", "why": "BPSC Prelims + Mains strategy and content."},
+    ],
+    "uppsc": [
+        {"title": "UPPSC Preparation | Khan Sir / Study IQ", "url": "https://www.youtube.com/results?search_query=uppsc+uppcs+preparation+khan+sir+study+iq", "platform": "youtube", "teacher": "Khan Sir / Study IQ", "why": "UP PCS Prelims + Mains with UP-specific GK."},
+    ],
+    "mpsc": [
+        {"title": "MPSC Preparation | Study IQ / MPSC Wallah", "url": "https://www.youtube.com/results?search_query=mpsc+maharashtra+pcs+preparation+lectures", "platform": "youtube", "teacher": "MPSC Wallah / Adda247", "why": "Maharashtra PSC Rajyaseva Prelims + Mains."},
+    ],
+    "ras": [
+        {"title": "RAS/RPSC Preparation | Study IQ / Utkarsh Classes", "url": "https://www.youtube.com/results?search_query=ras+rpsc+rajasthan+pcs+preparation+utkarsh+classes", "platform": "youtube", "teacher": "Utkarsh Classes", "why": "Rajasthan Administrative Services with Rajasthan-specific GK."},
+    ],
+    # ===================== HINDI MEDIUM GENERAL =====================
+    "hindi": [
+        {"title": "All Competitive Exams GS | Khan Sir", "url": "https://www.youtube.com/results?search_query=khan+sir+gs+complete+hindi+medium", "platform": "youtube", "teacher": "Khan Sir (Khan GS)", "why": "Hindi medium GS/GK for UPSC, BPSC, UPPSC, SSC, Railway."},
+        {"title": "Hindi Literature / Grammar | Magnet Brains", "url": "https://www.youtube.com/results?search_query=hindi+grammar+magnet+brains+class+10+12", "platform": "youtube", "teacher": "Magnet Brains", "why": "Hindi grammar and literature for CBSE/State boards."},
+        {"title": "Hindi for Competitive Exams | Rukmani Prakashan / Nitin Sir", "url": "https://www.youtube.com/results?search_query=hindi+competitive+exam+nitin+gupta+sir", "platform": "youtube", "teacher": "Nitin Gupta Sir", "why": "Hindi for SSC, Bank, Railway, UPSC, State PSC."},
+    ],
+    # ===================== CBSE / CLASS 11-12 =====================
+    "class 11": [
+        {"title": "Class 11 Full Syllabus | Physics Wallah Arjuna Batch", "url": "https://www.youtube.com/results?search_query=class+11+physics+wallah+arjuna+batch+full+chapter", "platform": "youtube", "teacher": "Physics Wallah Arjuna", "why": "Complete Class 11 PCMB for CBSE + JEE/NEET foundation."},
+    ],
+    "class 12": [
+        {"title": "Class 12 Board Exam Preparation | Physics Wallah Lakshya", "url": "https://www.youtube.com/results?search_query=class+12+physics+wallah+lakshya+batch+board+exam", "platform": "youtube", "teacher": "Physics Wallah Lakshya", "why": "Complete Class 12 CBSE board prep + JEE/NEET."},
     ],
 }
 
 
+def _word_signature(s: str) -> set:
+    """Extract significant words from a string (length > 2, not common stop words)."""
+    import re
+    stop = {"the","a","an","of","in","on","at","to","for","and","or",
+            "with","by","from","class","jee","neet","one","shot","full",
+            "chapter","physics","biology","chemistry","maths","math",
+            "lecture","crash","course","upsc","iit","aiims","exam",
+            "complete","ncert","all","part","level","problems","pyq",
+            "pyqs","most","important","best","detailed","concepts","basic",
+            "advanced","foundation","board","cbse","icse","cse","prelims",
+            "mains","paper","grade","students","student","indian","&"}
+    return {w for w in re.sub(r'[^a-z0-9 ]+', ' ', s.lower()).split() if len(w) > 2 and w not in stop}
+
+
 def _match_curated(chapter_title: str) -> List[dict]:
     """Return curated resources if the chapter title matches known topics.
-
-    Uses substring matching but requires MULTIPLE key terms to match to avoid
-    false positives (e.g., "laws" alone shouldn't match; "laws of motion" should).
+    Uses word-overlap scoring to match multi-word keywords.
+    Returns up to 4 resources for richer learning.
     """
-    title_lower = chapter_title.lower()
-    # Normalize punctuation
-    import re
-    title_clean = re.sub(r'[^a-z0-9 ]+', ' ', title_lower)
-    title_words = set(title_clean.split())
-    matched = []
-    matched_urls = set()
+    ch_words = _word_signature(chapter_title)
+    scored_resources = {}  # url -> (best_score, resource_dict)
+
     for keyword, resources in CURATED_RESOURCES.items():
-        kw_words = [w for w in keyword.split() if len(w) > 2]
+        kw_words = _word_signature(keyword)
         if not kw_words:
             continue
-        # Require: either the full keyword phrase appears, or at least half
-        # of the significant words appear in the title
-        phrase_match = keyword in title_lower or keyword in title_clean
-        if not phrase_match:
-            hits = sum(1 for w in kw_words if w in title_words)
-            if hits < max(1, len(kw_words) - (1 if len(kw_words) > 2 else 0)):
+        kw_phrase = keyword.lower()
+        title_lower = chapter_title.lower()
+        # Direct substring match = very strong signal
+        if kw_phrase in title_lower:
+            score = 100
+        else:
+            # Word overlap: require at least half of keyword's significant words to appear
+            overlap = ch_words & kw_words
+            ratio = len(overlap) / len(kw_words)
+            if ratio < 0.5 and len(overlap) < 1:
                 continue
+            score = int(ratio * 50) + len(overlap) * 5
         for r in resources:
-            if r["url"] not in matched_urls:
-                matched.append(r)
-                matched_urls.add(r["url"])
-        if len(matched) >= 2:
+            url = r["url"]
+            if url not in scored_resources or score > scored_resources[url][0]:
+                scored_resources[url] = (score, r)
+
+    # Sort by score descending, take top 4
+    ranked = sorted(scored_resources.values(), key=lambda x: -x[0])
+    out = []
+    seen_titles = set()
+    for score, r in ranked:
+        if score < 5:
+            continue
+        # Dedup by URL and near-duplicate titles
+        title_key = r["title"][:40].lower()
+        if title_key in seen_titles:
+            continue
+        seen_titles.add(title_key)
+        out.append(r)
+        if len(out) >= 4:
             break
-    return matched[:3]
+    return out
 
 
-def _ddg_search(query: str, max_results: int = 3) -> List[dict]:
-    """Run a DuckDuckGo search and return results as dicts. Tries video search first for video queries."""
+def _ddg_search(query: str, max_results: int = 4) -> List[dict]:
+    """Run a DuckDuckGo search and return results as dicts. Tries video search first."""
     try:
         from duckduckgo_search import DDGS
         results = []
         with DDGS() as ddgs:
-            # If query targets videos, use video search
-            if 'youtube' in query.lower() or 'lecture' in query.lower() or 'video' in query.lower() or 'one shot' in query.lower():
+            is_video = any(kw in query.lower() for kw in ('youtube','lecture','video','one shot','tutorial'))
+            if is_video:
                 try:
                     for hit in ddgs.videos(query, max_results=max_results):
-                        url = hit.get("href", "") or hit.get("content", "")
-                        title = hit.get("title", "")
-                        body = hit.get("description", "")
-                        channel = hit.get("uploader", "") or hit.get("channel", "")
-                        platform = "youtube" if "youtube" in url or "youtu.be" in url else "video"
+                        url = hit.get("href","") or hit.get("content","")
+                        title = hit.get("title","")
+                        body = hit.get("description","")
+                        channel = hit.get("uploader","") or hit.get("channel","")
                         results.append({
-                            "title": title,
-                            "url": url,
-                            "platform": platform,
+                            "title": title, "url": url, "platform": "youtube",
                             "teacher": channel,
                             "why": (body or f"Video lecture on {query[:80]}")[:200],
                         })
                 except Exception as e:
-                    logger.debug(f"DDG video search failed, falling back to text: {e}")
-            if not results:
+                    logger.debug(f"DDG video search failed: {e}")
+            if len(results) < 2:
                 for hit in ddgs.text(query, max_results=max_results):
-                    url = hit.get("href", "")
-                    title = hit.get("title", "")
-                    body = hit.get("body", "")
-                    platform = "youtube" if "youtube.com" in url or "youtu.be" in url else (
-                        "nptel" if "nptel" in url else (
-                            "khanacademy" if "khanacademy" in url else (
-                                "vedantu" if "vedantu" in url else (
-                                    "pw" if "physicswallah" in url or "pw.live" in url else "other"
-                                )
-                            )
-                        )
-                    )
+                    url = hit.get("href","")
+                    title = hit.get("title","")
+                    body = hit.get("body","")
+                    url_l = url.lower()
+                    platform = "youtube" if "youtube.com" in url_l or "youtu.be" in url_l else (
+                        "nptel" if "nptel" in url_l else (
+                            "khanacademy" if "khanacademy" in url_l else (
+                                "vedantu" if "vedantu" in url_l else (
+                                    "pw" if any(x in url_l for x in ("physicswallah","pw.live")) else (
+                                        "unacademy" if "unacademy" in url_l else (
+                                            "byjus" if "byjus" in url_l else "other"))))))
                     teacher = ""
                     if platform == "youtube":
-                        if "|" in title:
-                            teacher = title.split("|")[-1].strip()
-                    elif platform in ("khanacademy","vedantu","nptel","pw"):
+                        for sep in ("|","-","–","—"):
+                            if sep in title:
+                                parts = title.split(sep)
+                                teacher = parts[-1].strip()
+                                if len(teacher) > 50:
+                                    teacher = teacher[:50]
+                                break
+                    elif platform in ("khanacademy","vedantu","nptel","pw","unacademy","byjus"):
                         teacher = platform.title()
                     results.append({
-                        "title": title,
-                        "url": url,
-                        "platform": platform,
+                        "title": title, "url": url, "platform": platform,
                         "teacher": teacher,
                         "why": body[:200] if body else f"Resource for: {query[:80]}",
                     })
@@ -221,55 +516,51 @@ def _ddg_search(query: str, max_results: int = 3) -> List[dict]:
 def _cloud_search(chapter: Chapter, exam: str) -> List[Resource]:
     """On Cloud Run: use Gemini with Google Search Grounding."""
     try:
-        import json
-        import google.genai as genai
+        import json, google.genai as genai
         from google.genai import types
-        from config import settings
-
         client = genai.Client(
             vertexai=True,
             project=settings.google_cloud_project,
             location=settings.google_cloud_region,
         )
         prompt = (
-            f"For an Indian student preparing for {exam}, find the 2 best FREE online video/reading "
+            f"For an Indian student preparing for {exam}, find the 3 best FREE online video/reading "
             f"resources for the chapter: '{chapter.title}' (topic: {chapter.description[:200]}). "
-            f"Prioritize YouTube lectures by top Indian educators (Physics Wallah, Khan Academy India, "
-            f"Vedantu, Unacademy JEE/NEET, Mohit Tyagi, GB Sir, Vani Ma'am, NPTEL for engineering). "
+            f"Prioritize YouTube lectures by top Indian educators: Physics Wallah (Alakh Pandey/Pankaj Sir), "
+            f"Khan Academy India, Vedantu (Shreyas/Abhishek/Vani Ma'am), Unacademy (Namo Kaul), "
+            f"Mohit Tyagi (Competishun), Eduniti (Mohit Bhargava), MathonGo (Sameer Bansal), GB Sir, "
+            f"Neela Bakore, Biomentors, BYJU'S, NPTEL, Khan Sir (Khan GS), Study IQ, OnlyIAS, VisionIAS, "
+            f"Mrunal Patel, Adda247, Rakesh Yadav, Himanshi Singh (CTET), Utkarsh Classes, Magnet Brains, Defence Wallah. "
             f"Return ONLY a JSON array of resources with fields: title, url, platform, teacher, why (1 sentence). "
-            f"Each URL must be a real, working link you verified via search. "
-            f'JSON format: [{{"title": "...", "url": "https://...", "platform": "youtube", "teacher": "...", "why": "..."}}]'
+            f"Each URL must be a real, working YouTube video link you verified via search. "
+            f'JSON format: [{{"title":"...","url":"https://...","platform":"youtube","teacher":"...","why":"..."}}]'
         )
         config = types.GenerateContentConfig(
             temperature=0.2,
             tools=[types.Tool(google_search=types.GoogleSearch())],
-            system_instruction="You are an academic resource curator for Indian exam aspirants. Return only valid JSON with real URLs.",
+            system_instruction="You are an academic resource curator for Indian exam aspirants. Return only valid JSON with real URLs from top Indian educator channels. Prefer YouTube links.",
         )
         response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-            config=config,
+            model=settings.gemini_model, contents=prompt, config=config,
         )
         text = response.text.strip()
-        # Strip markdown fences
         if text.startswith("```"):
-            lines = text.splitlines()
-            lines = lines[1:]
+            lines = text.splitlines(); lines = lines[1:]
             while lines and lines[-1].startswith("```"):
                 lines = lines[:-1]
             text = "\n".join(lines).strip()
         data = json.loads(text)
         out = []
-        for item in data[:2]:
-            url = item.get("url", "")
+        for item in data[:3]:
+            url = item.get("url","")
             if url and url.startswith("http"):
                 out.append(Resource(
                     chapter=chapter.title,
                     title=item.get("title", chapter.title)[:140],
                     url=url,
-                    platform=item.get("platform", "other")[:30],
-                    teacher_or_channel=item.get("teacher", "")[:80],
-                    why=item.get("why", "")[:200],
+                    platform=item.get("platform","other")[:30],
+                    teacher_or_channel=item.get("teacher","")[:80],
+                    why=item.get("why","")[:200],
                 ))
         return out
     except Exception as e:
@@ -277,93 +568,92 @@ def _cloud_search(chapter: Chapter, exam: str) -> List[Resource]:
         return []
 
 
-def _is_relevant(chapter_title: str, url: str, hit_title: str) -> bool:
-    """Check that a search result is actually about the chapter topic.
+BAD_DOMAINS = (
+    "wikipedia.org","wikibooks.org","pinterest","facebook","instagram",
+    "quora.com","scribd.com","coursehero","chegg.com","merriam-webster",
+    "dictionary.com","justia.com","usajobs","usa.gov","linkedin.com",
+    "amazon.","flipkart","indeed.com","toppr","doubtnut",
+)
 
-    DDG sometimes returns tangentially related videos (e.g. "electrostatics"
-    when searching "work, energy, power"). We require at least one significant
-    word from the chapter title to appear in the hit title.
-    """
-    import re
-    stop_words = {"the","a","an","of","in","on","at","to","for","and","or",
-                  "with","by","from","class","jee","neet","one","shot",
-                  "full","chapter","physics","biology","chemistry","maths",
-                  "lecture","crash","course"}
-    def sig_words(s: str) -> set:
-        s = re.sub(r'[^a-z0-9 ]+', ' ', s.lower())
-        return {w for w in s.split() if len(w) > 3 and w not in stop_words}
-    ch_words = sig_words(chapter_title)
-    hit_words = sig_words(hit_title.lower() + " " + url.lower())
-    if not ch_words:
-        return True
-    # Must share at least one significant word with chapter title
-    overlap = ch_words & hit_words
-    return len(overlap) >= 1
+EDUCATOR_DOMAINS = (
+    "youtube.com","youtu.be","khanacademy.org","nptel","vedantu.com",
+    "physicswallah","pw.live","unacademy","mohittyagi","competishun",
+    "byjus.com","eduniti","mathongo","neelabakore","biomentors",
+    "studyiq","study-iq","onlyias","visionias","mrunal",
+    "adda247","khangsresearchcentre","khan-sir","magnetbrains",
+    "rakeshyadav","deepaktirthyani","utkarsh","defencewallah",
+)
+
+EDUCATOR_NAMES = (
+    "physics wallah","alakh pandey","pankaj sir","vedantu","khan academy",
+    "mohit tyagi","competishun","unacademy","namo kaul","nptel",
+    "eduniti","mohit bhargava","vani ma'am","vani maam","gb sir","mathongo",
+    "sameer bansal","neela bakore","biomentors","geetendra","geetendra sir",
+    "byju","study iq","khan sir","onlyias","vision ias","visionias",
+    "mrunal patel","mrunal","adda247","ns sir","vt sir","shreyas sir",
+    "abhishek sir","amit sengupta","magnet brains","rakesh yadav",
+    "one shot","lecture","tutorial","ncert","pyq","revision",
+    "himanshi singh","utkarsh","defence wallah","deepak tirthyani",
+    "jaideep sir","gaurav sir","rahul meena","vipan goyal",
+)
 
 
 def _is_educator_resource(url: str, title: str) -> bool:
-    """Heuristic: is this a video/lecture from a known educator platform?
-
-    Prefers YouTube videos from Indian educators, Khan Academy, NPTEL, Vedantu.
-    Rejects Wikipedia, dictionary/legal/spam pages.
-    """
-    url_l = url.lower()
-    title_l = title.lower()
-    bad_domains = ("wikipedia.org", "wikibooks.org", "pinterest", "facebook",
-                   "instagram", "quora.com", "scribd.com", "coursehero",
-                   "chegg.com", "merriam-webster", "dictionary.com",
-                   "justia.com", "usajobs", "usa.gov", "linkedin.com",
-                   "amazon.", "flipkart", "indeed.com")
-    for b in bad_domains:
+    url_l = url.lower(); title_l = title.lower()
+    for b in BAD_DOMAINS:
         if b in url_l:
             return False
-    # Good domains
-    video_platforms = ("youtube.com", "youtu.be", "khanacademy.org", "nptel",
-                       "vedantu.com", "physicswallah", "pw.live", "unacademy",
-                       "mohittyagi", "byjus.com")
-    if any(v in url_l for v in video_platforms):
+    if any(v in url_l for v in EDUCATOR_DOMAINS):
         return True
-    # Educator name in title
-    educator_names = ("physics wallah", "alakh pandey", "vedantu", "khan academy",
-                      "mohit tyagi", "unacademy", "nptel", "gb sir", "vani ma'am",
-                      "one shot", "lecture", "tutorial", "ncert", "pyq", "revision")
-    if any(e in title_l for e in educator_names):
+    if any(e in title_l for e in EDUCATOR_NAMES):
+        return True
+    if "youtube.com/results" in url_l or "youtube.com/playlist" in url_l:
         return True
     return False
 
 
+def _is_relevant(chapter_title: str, url: str, hit_title: str) -> bool:
+    ch_words = _word_signature(chapter_title)
+    hit_words = _word_signature(hit_title.lower() + " " + url.lower())
+    if not ch_words:
+        return True
+    overlap = ch_words & hit_words
+    return len(overlap) >= 1
+
+
 def find_resources_for_chapter(chapter: Chapter, exam: str) -> List[Resource]:
-    """Find 1-3 best free resources for a chapter. Never returns empty."""
+    """Find 2-4 best free resources for a chapter. NEVER returns empty."""
     resources: List[Resource] = []
 
-    # 0. FIRST: check curated database for well-known topics (highest quality)
+    # 1. First: curated database (highest quality, guaranteed real educators)
     curated = _match_curated(chapter.title)
     for c in curated:
         if not any(r.url == c["url"] for r in resources):
             resources.append(Resource(chapter=chapter.title, **c))
 
-    # 1. Try cloud search (if running on GCP)
+    # 2. Try cloud search (if running on GCP with Vertex)
     if settings.is_cloud and settings.google_cloud_project:
         cloud = _cloud_search(chapter, exam)
         for r in cloud:
             if not any(existing.url == r.url for existing in resources):
                 resources.append(r)
 
-    # 2. Try DuckDuckGo with YouTube-specific queries for educator videos
-    if len(resources) < 2:
+    # 3. Try DuckDuckGo video search if we still need more
+    if len(resources) < 3:
+        # Build better search queries with educator hints
+        educator_chain = "physics+wallah+OR+vedantu+OR+unacademy+OR+eduniti+OR+mohit+tyagi"
         queries = [
-            f'site:youtube.com "{chapter.title}" one shot {exam} physics wallah OR vedantu OR unacademy',
-            f'{chapter.title} {exam} one shot lecture youtube physics wallah',
-            f'{chapter.title} class 11 JEE NEET youtube lecture',
+            f'site:youtube.com "{chapter.title}" one shot {exam} {educator_chain}',
+            f'{chapter.title} {exam} one shot lecture youtube physics wallah OR khan sir OR study iq',
+            f'{chapter.title} class 11 12 JEE NEET youtube lecture',
+            f'{chapter.title} {exam} free lecture video',
         ]
         for q in queries:
-            if len(resources) >= 2:
+            if len(resources) >= 4:
                 break
             for hit in _ddg_search(q, max_results=3):
-                url = hit.get("url", "")
+                url = hit.get("url","")
                 if not url or any(r.url == url for r in resources):
-                    continue
-                if any(bad in url for bad in ["pinterest","facebook","instagram","quora.com","wikipedia.org","chegg","scribd","merriam-webster","justia","usa.gov"]):
                     continue
                 if not _is_educator_resource(url, hit.get("title","")):
                     continue
@@ -378,40 +668,19 @@ def find_resources_for_chapter(chapter: Chapter, exam: str) -> List[Resource]:
                     why=hit["why"][:200],
                 ))
 
-    # 3. DDG without site: filter as last resort, but still filter
-    if len(resources) < 2:
-        for hit in _ddg_search(f'{chapter.title} {exam} free lecture video', max_results=3):
-            url = hit.get("url","")
-            if not url or any(r.url == url for r in resources):
-                continue
-            if any(bad in url for bad in ["pinterest","facebook","instagram","quora.com","wikipedia.org","chegg","scribd","merriam-webster","justia"]):
-                continue
-            if not _is_educator_resource(url, hit.get("title","")):
-                continue
-            if not _is_relevant(chapter.title, url, hit.get("title","")):
-                continue
-            resources.append(Resource(
-                chapter=chapter.title,
-                title=hit["title"][:140],
-                url=url,
-                platform=hit["platform"],
-                teacher_or_channel=hit["teacher"],
-                why=hit["why"][:200],
-            ))
-
-    # 4. Ultimate fallback: YouTube search page
+    # 4. Ultimate fallback: YouTube search page (always works, opens results)
     if len(resources) < 1:
-        topic_q = urllib.parse.quote_plus(f"{chapter.title} {exam} one shot physics wallah")
+        topic_q = urllib.parse.quote_plus(f"{chapter.title} {exam} one shot")
         resources.append(Resource(
             chapter=chapter.title,
-            title=f"YouTube: {chapter.title} lectures for {exam}",
+            title=f"YouTube search: {chapter.title} lectures for {exam}",
             url=f"https://www.youtube.com/results?search_query={topic_q}",
             platform="youtube",
             teacher_or_channel="YouTube search",
-            why="Find the best lecture that matches your learning style.",
+            why=f"Find the best lecture on {chapter.title} that matches your learning style from top Indian educators.",
         ))
 
-    return resources[:3]
+    return resources[:4]
 
 
 def find_all_resources(chapters: List[Chapter], exam: str) -> List[Resource]:

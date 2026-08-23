@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="Exam Mitra — paste your competitive exam syllabus, get a complete day-by-day study plan with notes, flashcards, MCQs, and free video lectures from top Indian educators in under 2 minutes. Built for JEE, NEET, UPSC aspirants." />
+<meta name="description" content="Exam Mitra — free AI study planner for ALL Indian competitive exams: JEE, NEET, UPSC, SSC, Banking, Railway, NDA, CDS, CUET, GATE, CAT, CTET, BPSC, UPPSC, MPSC, RAS, CBSE, and more. Generates day-by-day study plan with notes, formulas, flashcards, MCQs, and curated video lectures. English + हिन्दी (Hinglish)." />
 <meta name="theme-color" content="#4f46e5" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>" />
-<title>Exam Mitra 📚 — AI Study Planner for JEE, NEET, UPSC</title>
+<title>Exam Mitra 📚 — AI Study Planner for ALL Indian Exams (JEE · NEET · UPSC · SSC · Banking · Railway · State PSC)</title>
 <link rel="stylesheet" href="/static/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="window.__katexReady = true; if (window.__renderKatex) window.__renderKatex();"></script>
 </head>
 <body>
 
@@ -25,55 +29,62 @@
 <!-- ====== Hero ====== -->
 <header class="hero">
   <div class="hero-inner">
-    <div class="pill">🏆 Built for JEE · NEET · UPSC · SSC · GATE · CBSE aspirants</div>
+    <div class="pill">🏆 FREE AI Study Agent · Every Indian Exam · English + हिन्दी</div>
     <h1>Paste your syllabus.<br><span class="accent">Get a complete study plan in 90 seconds.</span></h1>
-    <p class="subtitle">Exam Mitra is an <b>autonomous AI agent</b> — not a chatbot. It parses your syllabus, builds a day-by-day schedule with revision days, finds free lectures from Physics Wallah, Khan Academy, Vedantu, Mohit Tyagi and NPTEL, writes formula-dense revision notes, creates active-recall flashcards, and generates exam-style MCQs with detailed explanations. <b>One click. Zero follow-up prompts.</b></p>
+    <p class="subtitle">Exam Mitra is an <b>autonomous AI agent</b> — not a chatbot. It parses your syllabus, builds a day-by-day schedule with built-in revision days, curates <b>free lectures from India's top educators</b> (Physics Wallah, Khan Academy, Vedantu, Unacademy, Mohit Tyagi, Eduniti, Study IQ, Khan Sir, Adda247 & many more), writes <b>beautifully-formatted formula-dense revision notes</b> with math rendered perfectly, creates active-recall flashcards, and generates exam-style MCQs with detailed explanations. <b>One click. Zero follow-up prompts.</b></p>
     <div class="hero-stats">
       <div><div class="stat-num">7</div><div class="stat-label">autonomous<br>AI agents</div></div>
-      <div><div class="stat-num">0</div><div class="stat-label">chat turns<br>needed</div></div>
+      <div><div class="stat-num">50+</div><div class="stat-label">Indian exams<br>supported</div></div>
       <div><div class="stat-num">~90s</div><div class="stat-label">to a full<br>study plan</div></div>
-      <div><div class="stat-num">100%</div><div class="stat-label">free<br>to use</div></div>
+      <div><div class="stat-num">100%</div><div class="stat-label">free<br>forever</div></div>
     </div>
-    <a href="#generator" class="cta-jump">▼ Generate a plan</a>
+    <a href="#generator" class="cta-jump">▼ Generate your plan now</a>
   </div>
 
   <main class="container">
-    <!-- How it works cards sit inside hero bg so they read on dark -->
     <section class="how-section">
       <h2 class="section-title">Seven specialized AI agents work in sequence</h2>
       <div class="how-grid">
-        <div class="how-card"><div class="how-num">1</div><h4>Syllabus Parser</h4><p>Intelligently splits your input into logical chapters — single topics stay one chapter, big syllabi are grouped smartly.</p></div>
-        <div class="how-card"><div class="how-num">2</div><h4>Day Planner</h4><p>Allocates days based on exam weightage and your daily budget, with revision + PYQ days every 5-6 days.</p></div>
-        <div class="how-card"><div class="how-num">3</div><h4>Resource Finder</h4><p>Curated free lectures from top Indian educators — PW, Vedantu, Khan Academy, Mohit Tyagi, NPTEL — with live search backup.</p></div>
-        <div class="how-card"><div class="how-num">4</div><h4>Notes Writer</h4><p>Revision notes with 8-12 key concepts, 6-15 formulas (with units!), common mistakes, and an exam-focused summary.</p></div>
-        <div class="how-card"><div class="how-num">5</div><h4>Flashcard Maker</h4><p>5-8 active-recall cards per chapter mixing formula recall, concept checks, and tricky sign/misconception questions.</p></div>
-        <div class="how-card"><div class="how-num">6</div><h4>MCQ Generator</h4><p>4 exam-style questions per chapter with plausible distractors from real student errors — every answer has a 3-5 sentence explanation.</p></div>
-        <div class="how-card how-card-accent"><div class="how-num">7</div><h4>Grader & Diagnostician</h4><p>After you practice, an agent grades answers and pinpoints weak areas with specific chapter-level feedback.</p></div>
+        <div class="how-card"><div class="how-num">1</div><h4>Syllabus Parser</h4><p>Smartly splits input into logical chapters — single topics stay one chapter, big syllabi grouped by unit.</p></div>
+        <div class="how-card"><div class="how-num">2</div><h4>Day Planner</h4><p>Allocates days by exam weightage + your daily hours, with revision + PYQ days every 5-6 days.</p></div>
+        <div class="how-card"><div class="how-num">3</div><h4>Resource Finder</h4><p>Curates FREE lectures from 20+ top Indian educator channels with live web search backup.</p></div>
+        <div class="how-card"><div class="how-num">4</div><h4>Notes Writer</h4><p>Revision notes with 8-12 key concepts, 8-18 beautifully-typeset formulas with units, common mistakes, exam summary.</p></div>
+        <div class="how-card"><div class="how-num">5</div><h4>Flashcard Maker</h4><p>6-9 active-recall cards per chapter mixing formula recall, concept checks, tricky misconception questions.</p></div>
+        <div class="how-card"><div class="how-num">6</div><h4>MCQ Generator</h4><p>4 exam-style MCQs per chapter with realistic distractors + detailed explanations showing why each wrong option is wrong.</p></div>
+        <div class="how-card how-card-accent"><div class="how-num">7</div><h4>Grader & Diagnostician</h4><p>After you practice, an AI agent grades answers and pinpoints exact weak areas with chapter-level feedback.</p></div>
       </div>
     </section>
   </main>
 </header>
 
 <!-- ====== Generator form ====== -->
-<main class="container" style="margin-top:-30px">
+<main class="container" style="margin-top:-50px">
   <section id="generator" class="card">
-    <h2>🚀 Generate your study package</h2>
-    <p class="hint">Choose a quick start below or tell us exactly what you're preparing for. The agents handle the rest.</p>
+    <h2>🚀 Generate your personalized study package</h2>
+    <p class="hint">Pick a category → select an exam → or paste any custom syllabus. The agents do everything else — no follow-up questions, no chat, just your finished study plan.</p>
 
-    <div class="presets">
-      <b>Quick start:</b>
-      <button type="button" class="preset-chip" data-exam="JEE Mains Physics" data-hours="5" data-syllabus="Kinematics, Laws of Motion, Work Energy Power, Rotational Motion, Gravitation, Thermodynamics, Electrostatics, Current Electricity, Magnetism, EMI, Optics, Modern Physics">⚡ JEE Mains Physics</button>
-      <button type="button" class="preset-chip" data-exam="NEET Biology" data-hours="5" data-syllabus="Cell Biology, Human Physiology (Digestion & Absorption; Breathing; Body Fluids; Excretory; Locomotion; Neural Control; Chemical Coordination), Plant Physiology, Genetics & Evolution, Human Reproduction, Reproductive Health, Ecology">🧬 NEET Biology</button>
-      <button type="button" class="preset-chip" data-exam="JEE Mains Maths" data-hours="4" data-syllabus="Sets Relations Functions, Complex Numbers Quadratic Equations, Matrices Determinants, Permutations Combinations, Binomial Theorem, Sequences Series, Trigonometry, Straight Lines Conic Sections, Limits Continuity Differentiability, Integral Calculus, Differential Equations, Vectors 3D Geometry, Probability Statistics">📐 JEE Maths</button>
-      <button type="button" class="preset-chip" data-exam="UPSC Prelims GS Paper 1" data-hours="6" data-syllabus="Indian Polity (Constitution, Parliament, Judiciary, Panchayati Raj), Indian Economy (Planning, Budget, RBI, Agriculture, Industry), Modern Indian History (1857-1947), Indian Geography (Physical, Economic, Social), Environment & Ecology, General Science, Current Affairs (last 1 year)">🏛️ UPSC GS</button>
-      <button type="button" class="preset-chip" data-exam="JEE Mains Physics" data-hours="4" data-syllabus="Kinematics">🎯 Just Kinematics</button>
+    <div class="presets-wrap">
+      <div class="presets-label">Step 1: Choose your exam category</div>
+      <div class="presets-row" id="cat-row">
+        <button type="button" class="preset-chip cat-chip active" data-cat="engineering">⚙️ Engineering (JEE)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="medical">🧬 Medical (NEET)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="civil">🏛️ Civil Services (UPSC)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="govt">📝 Govt Jobs (SSC/Bank/Railway)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="defence">🛡️ Defence (NDA/CDS/AFCAT)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="teaching">👩‍🏫 Teaching (CTET/TET)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="state">🗺️ State PSCs (BPSC/UPPSC/etc)</button>
+        <button type="button" class="preset-chip cat-chip" data-cat="other">🎓 Other (CUET/GATE/CAT/CBSE)</button>
+      </div>
+
+      <div class="presets-label" id="exam-label" style="margin-top:14px">Step 2: Select an exam preset</div>
+      <div class="presets-row" id="exam-row"></div>
     </div>
 
     <form id="plan-form">
       <div class="grid-2">
         <label class="field">
-          <span>Exam name</span>
-          <input id="exam" type="text" placeholder="e.g. JEE Mains Physics, UPSC GS, NEET Biology" required />
+          <span>Exam name <small>(edit freely for custom exams)</small></span>
+          <input id="exam" type="text" placeholder="e.g. JEE Mains, NEET Biology, UPSC GS, SSC CGL, BPSC" required />
         </label>
         <label class="field">
           <span>Daily study hours</span>
@@ -86,44 +97,51 @@
           <input id="start-date" type="date" />
         </label>
         <label class="field">
-          <span>Language</span>
+          <span>Language / भाषा</span>
           <select id="language">
             <option value="en">English</option>
-            <option value="hinglish">Hinglish (Hindi in Roman script)</option>
-            <option value="hi">Hindi</option>
+            <option value="hinglish">Hinglish (हिन्दी + English, Roman script)</option>
+            <option value="hi">हिन्दी (Hindi Devanagari)</option>
           </select>
         </label>
       </div>
       <label class="field">
-        <span>Syllabus / topics</span>
-        <textarea id="syllabus" rows="8" placeholder="Paste the full syllabus, or just the topics you want to cover — a single chapter (e.g. 'Kinematics'), a chapter list, or an entire exam syllabus." required></textarea>
+        <span>Syllabus / topics <small>(auto-filled by presets; edit as needed)</small></span>
+        <textarea id="syllabus" rows="8" placeholder="Paste your full syllabus, or just the topics you want to cover — a single chapter (e.g. 'Kinematics'), a chapter list, or an entire exam syllabus. Examples:
+
+• 'Projectile Motion' (single topic)
+• 'Kinematics, Laws of Motion, Work Energy Power' (multiple topics)
+• Full JEE Mains syllabus, full UPSC GS syllabus, BPSC Prelims, etc.
+
+The 7 agents will parse, plan, find resources, write notes, make flashcards, and generate MCQs automatically." required></textarea>
       </label>
       <button type="submit" id="submit-btn" class="btn-primary">
         <span class="btn-text">✨ Generate my study plan</span>
       </button>
-      <p class="fine-print">🔒 Your inputs never leave the server. Your plan is private unless you share the link. Generation takes ~20-90 seconds depending on syllabus size.</p>
+      <p class="fine-print">🔒 Your inputs stay private. Plan is shareable only if you share the link. Generation takes ~20-90 seconds depending on syllabus size.</p>
     </form>
   </section>
 
-  <!-- Progress -->
   <section id="progress-section" class="card hidden">
     <h2>🔄 7 AI agents are building your plan…</h2>
-    <p class="hint">Please don't close this tab — we'll stream live updates as each agent completes its task.</p>
+    <p class="hint">Don't close this tab — we'll stream live updates as each agent completes its task.</p>
     <div class="steps" id="steps-list"></div>
   </section>
 
-  <!-- Results -->
   <section id="results" class="hidden"></section>
 </main>
 
+<div class="toast" id="toast"></div>
+
 <footer>
-  <p>Built with ❤️ for the <a href="https://allthingsagentichackathon.devpost.com/" target="_blank" rel="noopener">Google Cloud All Things Agentic Hackathon 2026</a></p>
+  <p>Built with ❤️ for Indian exam aspirants · <a href="https://allthingsagentichackathon.devpost.com/" target="_blank" rel="noopener">Google Cloud All Things Agentic Hackathon 2026</a></p>
   <div class="tech">
     <span>Google ADK</span>
     <span>Gemini 3.5 Flash</span>
     <span>Cloud Run</span>
     <span>Firestore</span>
     <span>FastAPI</span>
+    <span>KaTeX</span>
   </div>
 </footer>
 
