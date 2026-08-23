@@ -305,6 +305,16 @@
     const panel = document.querySelector(`[data-panel="${t.dataset.tab}"]`);
     if (panel) panel.classList.add('active');
   }));
+  // Flashcard flip
+  document.querySelectorAll('.flashcard').forEach(fc => {
+    fc.addEventListener('click', () => fc.classList.toggle('flipped'));
+  });
+  // Day expand toggle (days are rendered without checkbox on share page, so the
+  // whole day-row toggles expansion)
+  document.querySelectorAll('.day-row').forEach(row => {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => row.classList.toggle('expanded'));
+  });
 </script>
 </body>
 </html>
