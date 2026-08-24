@@ -153,6 +153,10 @@ exam-mitra/
 
 ---
 
-## 📝 License & credits
+## 📝 License & Author
 
-Built solo for the All Things Agentic Hackathon (Aug 2026). Physics Wallah, Khan Academy, Vedantu, Mohit Tyagi, and NPTEL are trademarks of their respective owners; links are provided as learning resources, not endorsements.
+**Author: Shubham** — Founder, CEO, and solo developer.
+
+Built solo (with AI coding assistance) for the All Things Agentic Hackathon by Google Cloud (August 2026). Physics Wallah, Khan Academy, Vedantu, Mohit Tyagi, NPTEL, and other YouTube educator links are provided as free learning resources, not endorsements; all trademarks belong to their respective owners.
+
+Released under the [MIT License](LICENSE) — © 2026 Shubham.
