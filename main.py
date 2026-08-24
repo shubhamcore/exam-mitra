@@ -21,7 +21,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Deque
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import (
     FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse,
 )
@@ -45,7 +45,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="2.3.1")
+app = FastAPI(title="Exam Mitra 📚", version="2.4.0")
 
 # ---------- Security middleware ----------
 
@@ -102,7 +102,7 @@ async def security_middleware(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Permissions-Policy", "camera=self, microphone=(), geolocation=()")
     # Only enable HSTS in production (cloud)
     if settings.is_cloud:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
@@ -115,6 +115,7 @@ async def security_middleware(request: Request, call_next):
         "font-src https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
         "img-src 'self' data: https:; "
         "connect-src 'self'; "
+        "worker-src 'self'; "
         "frame-ancestors 'none'",
     )
     return response
@@ -501,6 +502,113 @@ async def tutor_chat(job_id: str, req: TutorRequest):
         lambda: ask_tutor(state, q, req.chapter, req.history),
     )
     return {"answer": answer}
+
+
+# ---------- Photo Syllabus Upload (multimodal vision OCR) ----------
+
+ALLOWED_UPLOAD_MIMES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp",
+    "image/heic", "image/heif",
+    "application/pdf",
+}
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 MB
+
+
+class ExtractSyllabusRequest(BaseModel):
+    """Optional context passed alongside the image to help OCR."""
+    exam: str = Field("", max_length=200)
+    language: str = Field("en", pattern="^(en|hi|hinglish)$")
+
+
+@app.post("/api/extract-syllabus")
+async def extract_syllabus(
+    request: Request,
+    file: UploadFile = File(...),
+    exam: str = "",
+    language: str = "en",
+):
+    """Accept a photo/PDF of a syllabus, run multimodal Gemini vision to extract
+    the topics/chapters as clean structured text, and return it for the user
+    to edit before submitting for plan generation.
+
+    This is the "Photo Upload" Tier-2 wow feature: snap a pic of your syllabus
+    PDF page / textbook TOC / exam-notification screenshot and it auto-fills.
+    """
+    ip = _client_ip(request)
+    # Apply a stricter rate-limit for vision (more token-heavy)
+    for prefix, (max_hits, window) in _RATE_LIMITS.items():
+        if prefix == "/api/start":
+            bucket = _rate_buckets[ip]["/api/extract-syllabus"]
+            now = time.monotonic()
+            while bucket and now - bucket[0] > window:
+                bucket.popleft()
+            if len(bucket) >= max_hits:
+                raise HTTPException(429, "Too many photo uploads — wait a minute and try again.")
+            bucket.append(now)
+            break
+
+    # Validate file type
+    if file.content_type and file.content_type not in ALLOWED_UPLOAD_MIMES:
+        raise HTTPException(400, f"Unsupported file type: {file.content_type}. Please upload a JPG, PNG, WEBP, or PDF image of your syllabus.")
+    # Validate extension as backup
+    if file.filename:
+        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+        if ext not in {"jpg", "jpeg", "png", "webp", "gif", "bmp", "pdf", "heic", "heif"}:
+            raise HTTPException(400, f"Unsupported file extension .{ext}. Please upload an image or PDF.")
+
+    # Read bytes (size-limited)
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "File too large. Maximum 8 MB.")
+
+    # Detect mime from extension if not provided
+    mime = file.content_type or "image/jpeg"
+    if file.filename and file.filename.lower().endswith(".pdf"):
+        mime = "application/pdf"
+    elif file.filename and file.filename.lower().endswith(".png"):
+        mime = "image/png"
+    elif file.filename and file.filename.lower().endswith((".jpg", ".jpeg")):
+        mime = "image/jpeg"
+    elif file.filename and file.filename.lower().endswith(".webp"):
+        mime = "image/webp"
+
+    lang_hint = {
+        "en": "English",
+        "hi": "Hindi (Devanagari script)",
+        "hinglish": "Hinglish (Hindi written in Roman letters)",
+    }.get(language, "English")
+
+    instruction = (
+        f"Extract the syllabus from this uploaded image/document.\n"
+        f"Target exam (if known): {exam or '(user will specify)'}\n"
+        f"Language: {lang_hint}\n\n"
+        f"Return a clean, plain-text, comma-and-newline separated list of chapters/units/topics "
+        f"suitable for pasting into a study planner. Preserve hierarchy with headings like "
+        f"'Unit 1: ...' and indented sub-topics. Keep every topic name verbatim from the image. "
+        f"If the image shows a table of contents, exam notification, handwritten topic list, "
+        f"syllabus PDF page, or textbook index, extract ALL topics. If the image is NOT a "
+        f"syllabus (e.g. a person, random photo), return a short message starting with "
+        f"'[UNRECOGNIZED]' explaining what you see."
+    )
+
+    def _run_vision():
+        from services.llm import vision_extract_text
+        return vision_extract_text(image_bytes=data, mime_type=mime, instruction=instruction)
+
+    loop = asyncio.get_running_loop()
+    try:
+        text = await loop.run_in_executor(None, _run_vision)
+    except Exception as e:
+        logger.exception("Vision extraction failed")
+        raise HTTPException(502, f"Vision extraction failed: {e}. Try a clearer photo or type the syllabus manually.")
+
+    return {
+        "filename": file.filename,
+        "mime": mime,
+        "bytes": len(data),
+        "extracted_text": text,
+        "language": language,
+    }
 
 
 # ---------- Static UI + shareable plan page ----------

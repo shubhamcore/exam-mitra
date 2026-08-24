@@ -6,6 +6,11 @@
 <meta name="description" content="Exam Mitra — free AI study planner for ALL Indian exams: JEE, NEET, UPSC, SSC, Banking, Railway, NDA, CDS, CUET, GATE, CAT, CTET, BPSC/UPPSC/MPSC/RAS, CBSE Class 10/12, AND college/university exams (BTech, BSc, BCom, MBBS, LLB). Generates day-by-day plan with notes, LaTeX formulas, flashcards, MCQs, and free video lectures. English + हिन्दी (Hinglish)." />
 <meta name="theme-color" content="#4f46e5" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>" />
+<link rel="manifest" href="/static/manifest.json" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Exam Mitra" />
 <title>Exam Mitra 📚 — AI Study Planner for JEE, NEET, Class 10/12 Boards, College & All Indian Exams</title>
 <link rel="stylesheet" href="/static/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,14 +48,14 @@
 
   <main class="container">
     <section class="how-section">
-      <h2 class="section-title">Seven specialized AI agents work in sequence</h2>
+      <h2 class="section-title">Nine specialized AI agents work in sequence</h2>
       <div class="how-grid">
         <div class="how-card"><div class="how-num">1</div><h4>Syllabus Parser</h4><p>Smartly splits input into logical chapters — single topics stay one chapter, big syllabi grouped by unit.</p></div>
         <div class="how-card"><div class="how-num">2</div><h4>Day Planner</h4><p>Allocates days by exam weightage + your daily hours, with revision + PYQ days every 5-6 days.</p></div>
         <div class="how-card"><div class="how-num">3</div><h4>Resource Finder</h4><p>Curates FREE lectures from 20+ top Indian educator channels with live web search backup.</p></div>
         <div class="how-card"><div class="how-num">4</div><h4>Notes Writer</h4><p>Revision notes with 8-12 key concepts, 8-18 beautifully-typeset formulas with units, common mistakes, exam summary.</p></div>
         <div class="how-card"><div class="how-num">5</div><h4>Flashcard Maker</h4><p>6-9 active-recall cards per chapter mixing formula recall, concept checks, tricky misconception questions.</p></div>
-        <div class="how-card"><div class="how-num">6</div><h4>MCQ Generator</h4><p>4 exam-style MCQs per chapter with realistic distractors + detailed explanations showing why each wrong option is wrong.</p></div>
+        <div class="how-card"><div class="how-num">6</div><h4>MCQ Generator</h4><p>6 PYQ-style MCQs per chapter ordered <b>easy → hard</b> to build momentum — realistic distractors, full calculation walkthroughs, JEE/NEET/UPSC/Board-specific difficulty.</p></div>
         <div class="how-card"><div class="how-num">7</div><h4>Grader & Diagnostician</h4><p>After you practice, AI grades answers and pinpoints exact weak areas with misconception-level feedback.</p></div>
         <div class="how-card how-card-accent"><div class="how-num">8</div><h4>Adaptive Booster Tutor</h4><p>If you miss questions, AI builds a 2-day focused revision plan, booster notes, and harder MCQs targeting exactly what you got wrong — in a closed loop until mastery.</p></div>
         <div class="how-card"><div class="how-num">9</div><h4>AI Doubt Tutor</h4><p>Ask any follow-up doubt in a free chat. AI answers in your language with LaTeX math, analogies (cricket, trains), and quick suggestions.</p></div>
@@ -110,14 +115,24 @@
         </label>
       </div>
       <label class="field">
-        <span>Syllabus / topics <small>(auto-filled by presets; edit as needed)</small></span>
-        <textarea id="syllabus" rows="8" placeholder="Paste your full syllabus, or just the topics you want to cover — a single chapter (e.g. 'Kinematics'), a chapter list, or an entire exam syllabus. Examples:
+        <span>Syllabus / topics
+          <small>(auto-filled by presets; edit as needed · or upload a photo 📸)</small>
+        </span>
+        <div class="syllabus-upload-row">
+          <label for="photo-input" class="btn-ghost photo-upload-btn" title="Upload a photo of your syllabus / textbook TOC / exam notification">
+            📸 <span id="photo-btn-label">Upload photo of syllabus</span>
+          </label>
+          <input type="file" id="photo-input" accept="image/*,.pdf" capture="environment" style="display:none" />
+          <span class="photo-hint">Works with handwritten lists, syllabus PDFs, exam notifications, textbook TOC — Hindi + English</span>
+        </div>
+        <div id="photo-status" class="photo-status" style="display:none"></div>
+        <textarea id="syllabus" rows="8" placeholder="Paste your full syllabus, or just the topics you want to cover — a single chapter (e.g. 'Kinematics'), a chapter list, or an entire exam syllabus. OR click '📸 Upload photo of syllabus' to snap a picture — AI will read it and fill this in for you. Examples:
 
 • 'Projectile Motion' (single topic)
 • 'Kinematics, Laws of Motion, Work Energy Power' (multiple topics)
 • Full JEE Mains syllabus, full UPSC GS syllabus, BPSC Prelims, etc.
 
-The 7 agents will parse, plan, find resources, write notes, make flashcards, and generate MCQs automatically." required></textarea>
+The 9 agents will parse, plan, find resources, write notes, make flashcards, generate MCQs, grade your answers, and tutor your weak spots automatically." required></textarea>
       </label>
       <button type="submit" id="submit-btn" class="btn-primary">
         <span class="btn-text">✨ Generate my study plan</span>
@@ -127,7 +142,7 @@ The 7 agents will parse, plan, find resources, write notes, make flashcards, and
   </section>
 
   <section id="progress-section" class="card hidden">
-    <h2>🔄 7 AI agents are building your plan…</h2>
+    <h2>🔄 9 AI agents are building your plan…</h2>
     <p class="hint">Don't close this tab — we'll stream live updates as each agent completes its task.</p>
     <div class="steps" id="steps-list"></div>
   </section>

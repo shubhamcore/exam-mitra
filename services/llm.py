@@ -132,3 +132,52 @@ def plain_generate(
         config=config,
     )
     return response.text.strip()
+
+
+# Vision-capable models (tried in order). Free-tier availability varies.
+# Google's 2026 recommendation per the error message is gemini-3.6-flash.
+# 3.5-flash and 3.7-flash also support multimodal/vision. -flash-lite is text-only.
+VISION_MODELS = [
+    "gemini-3.6-flash",   # Google's current recommended stable vision model
+    "gemini-3.5-flash",   # 20/day free cap
+    "gemini-3.7-flash",   # newer but 503s occasionally
+]
+
+
+def vision_extract_text(*, image_bytes: bytes, mime_type: str, instruction: str) -> str:
+    """Extract text from an uploaded photo/PDF page using Gemini vision.
+
+    Tries multiple models in order since flash-lite is text-only.
+    Returns extracted text as a plain string.
+    """
+    client = get_client()
+    import base64
+    part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+    last_err: Exception | None = None
+    for m in VISION_MODELS:
+        try:
+            config = types.GenerateContentConfig(
+                temperature=0.1,
+                system_instruction=(
+                    "You are Exam Mitra's Syllabus OCR. You are given a photo or screenshot "
+                    "of a syllabus, textbook chapter list, exam notification, or handwritten "
+                    "topic list. Extract every topic/chapter/unit name you can read, preserving "
+                    "hierarchy (Unit 1 → subtopics). Output a clean, well-structured plain-text "
+                    "syllabus that can be pasted directly into a study planner. Do NOT add "
+                    "commentary or bullets beyond what's in the image. If the image contains "
+                    "Hindi/Devanagari or Hinglish, preserve it verbatim. If parts are blurry, "
+                    "mark them [unclear]."
+                ),
+            )
+            response = client.models.generate_content(
+                model=m,
+                contents=[instruction, part],
+                config=config,
+            )
+            return response.text.strip()
+        except Exception as e:
+            logger.warning("Vision model %s failed: %s — trying next", m, e)
+            last_err = e
+            continue
+    # If all vision models fail, raise
+    raise RuntimeError(f"All vision models failed. Last error: {last_err}")

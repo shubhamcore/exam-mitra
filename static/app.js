@@ -656,14 +656,13 @@ function renderResults(jobId, j) {
         <div class="day-badge">D${d.day}${d.date?`<small>${d.date.slice(5)}</small>`:""}</div>
         <div class="day-body" onclick="this.closest('.day-row').classList.toggle('expanded')">
           <h4>${esc(d.chapter)}<span class="expand-icon">▼</span></h4>
-          <div class="hours">${d.hours} hours</div>
-          <ul>${(d.activities||[]).map(a=>`<li>${esc(a)}</li>`).join("")}</ul>
+          <div class="hours">${d.hours} hours · ${(d.activities||[]).length} activities · <span class="tap-hint">tap to expand</span></div>
         </div>
         <div class="day-details">
           <div class="day-detail-inner">
             <div class="day-chapter-label">📝 Today's activities in detail:</div>
             <ul style="margin:0;padding-left:20px;font-size:13.5px;color:var(--text-2)">
-              ${(d.activities||[]).map(a=>`<li style="margin:4px 0">${esc(a)}</li>`).join("")}
+              ${(d.activities||[]).map(a=>`<li style="margin:6px 0;line-height:1.55">${esc(a)}</li>`).join("")}
             </ul>
             ${resLinksHtml}
           </div>
@@ -771,7 +770,7 @@ function renderResults(jobId, j) {
   resultsSection.innerHTML = `<div class="card">
     <div class="result-header">
       <h2>✅ Your personalized study plan</h2>
-      <p>Built autonomously by Exam Mitra's 7 AI agents · ${esc(pkg.exam)}</p>
+      <p>Built autonomously by Exam Mitra's 9 AI agents · ${esc(pkg.exam)}</p>
       <div class="result-stats">${statsHtml}</div>
     </div>
     <div class="tabs">${tabsHtml}</div>
@@ -1429,6 +1428,137 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeTutor();
 });
+
+/* ===============================================================
+   Exam Mitra v2.4 — Photo Syllabus Upload + PWA
+   =============================================================== */
+
+/* ---------- Photo Syllabus Upload (multimodal vision OCR) ---------- */
+(() => {
+  const photoInput = document.getElementById("photo-input");
+  const photoStatus = document.getElementById("photo-status");
+  const syllabusTA = document.getElementById("syllabus");
+  const photoBtnLabel = document.getElementById("photo-btn-label");
+  if (!photoInput) return;
+
+  function setStatus(type, html) {
+    if (!photoStatus) return;
+    photoStatus.className = `photo-status ${type}`;
+    photoStatus.innerHTML = html;
+    photoStatus.style.display = type ? "block" : "none";
+  }
+
+  photoInput.addEventListener("change", async () => {
+    const file = photoInput.files && photoInput.files[0];
+    if (!file) return;
+
+    // Quick client-side size check
+    if (file.size > 8 * 1024 * 1024) {
+      setStatus("error", "⚠️ File too large. Please use an image under 8 MB.");
+      return;
+    }
+
+    setStatus("loading", `<span class="spinner"></span>Reading photo with AI vision… this takes 4-8 seconds. Tip: make sure chapter/topic names are in focus.`);
+    photoBtnLabel.textContent = "⏳ Scanning…";
+
+    const examVal = (document.getElementById("exam") || {}).value || "";
+    const langVal = (document.getElementById("language") || {}).value || "en";
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("exam", examVal);
+      fd.append("language", langVal);
+
+      const resp = await fetch("/api/extract-syllabus", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!resp.ok) {
+        let err = `Upload failed (${resp.status})`;
+        try { const j = await resp.json(); err = j.detail || j.error || err; } catch(_) {}
+        throw new Error(err);
+      }
+
+      const data = await resp.json();
+      const extracted = data.extracted_text || "";
+
+      if (extracted.startsWith("[UNRECOGNIZED]")) {
+        setStatus("error", "⚠️ Could not recognize a syllabus in this image. Try a clearer photo of your syllabus/TOC, or type the topics manually.<br><small>" + extracted.slice(15).slice(0,200) + "</small>");
+      } else {
+        // Insert into syllabus textarea (append or replace if empty)
+        const current = syllabusTA.value.trim();
+        const joiner = current ? "\n\n[Extracted from photo]:\n" : "";
+        syllabusTA.value = current + joiner + extracted;
+        setStatus("success", `✅ Syllabus extracted (${extracted.length} chars). Review, edit if needed, then click Generate. <a href="#" id="reupload-link" style="color:#065f46;text-decoration:underline;font-weight:600">Upload another?</a>`);
+        document.getElementById("reupload-link")?.addEventListener("click", (e) => {
+          e.preventDefault();
+          photoInput.value = "";
+          setStatus("", "");
+          photoBtnLabel.textContent = "Upload photo of syllabus";
+        });
+        toast("📸 Syllabus extracted — review and edit if needed!");
+      }
+    } catch (err) {
+      setStatus("error", `⚠️ ${esc(err.message || "Upload failed")}. You can still paste the syllabus manually.`);
+    } finally {
+      photoBtnLabel.textContent = "Upload photo of syllabus";
+    }
+  });
+})();
+
+/* ---------- PWA: Service Worker registration + Install banner ---------- */
+(() => {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/static/sw.js").catch((err) => {
+        console.warn("SW registration failed:", err);
+      });
+    });
+  }
+
+  // PWA install prompt
+  let deferredPrompt = null;
+  const dismissed = localStorage.getItem("em_pwa_dismissed");
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (dismissed && Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000) return; // don't show within 7 days of dismiss
+    setTimeout(showInstallBanner, 4000); // wait a few seconds after page load
+  });
+
+  function showInstallBanner() {
+    // Don't show if already running in standalone/installed mode
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    let banner = document.getElementById("pwa-install-banner");
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "pwa-install-banner";
+      banner.className = "pwa-install-banner";
+      banner.innerHTML = `
+        <span>📱 Install Exam Mitra on your phone — works offline!</span>
+        <button class="install-btn">Install</button>
+        <button class="dismiss" aria-label="Dismiss">✕</button>
+      `;
+      document.body.appendChild(banner);
+      banner.querySelector(".install-btn").addEventListener("click", async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          await deferredPrompt.userChoice;
+          deferredPrompt = null;
+        }
+        banner.classList.remove("show");
+      });
+      banner.querySelector(".dismiss").addEventListener("click", () => {
+        banner.classList.remove("show");
+        localStorage.setItem("em_pwa_dismissed", String(Date.now()));
+      });
+    }
+    banner.classList.add("show");
+  }
+})();
 
 /* ---- On load: auto-load ?job=XXX ---- */
 window.addEventListener("DOMContentLoaded", () => {
