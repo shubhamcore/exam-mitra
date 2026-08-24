@@ -26,7 +26,7 @@ const STEP_LABELS = [
 const TOTAL_STEPS = 7;
 
 /* =========================================================
-   EXAM PRESETS DATABASE — covers 50+ Indian exams
+   EXAM PRESETS DATABASE — covers 60+ Indian exams
    ========================================================= */
 const EXAM_PRESETS = {
   engineering: [
@@ -87,6 +87,30 @@ const EXAM_PRESETS = {
     { emoji: "👨‍🏫", label: "CTET Paper 2 (Class 6-8)", exam: "CTET Paper 2 (Upper Primary)", hours: 4,
       syllabus: "Child Development and Pedagogy (Adolescence, Learning Theories, Intelligence, Personality, Assessment and Evaluation, Inclusive Education), Language 1 (Hindi/English Pedagogy, Grammar, Comprehension), Language 2 (English/Hindi Comprehension, Pedagogy), Mathematics and Science (Number System, Algebra, Geometry, Mensuration, Data Handling; Science: Food, Materials, World of Living, How Things Work, Moving Things, Natural Phenomena, Natural Resources) OR Social Studies/Social Science (History, Geography, Social and Political Life, Pedagogy)" },
   ],
+  boards: [
+    { emoji: "🏫", label: "CBSE Class 10 — All Subjects", exam: "CBSE Class 10 Board Exams", hours: 4,
+      syllabus: "Mathematics (Real Numbers, Polynomials, Pair of Linear Equations in Two Variables, Quadratic Equations, Arithmetic Progressions, Triangles, Coordinate Geometry, Introduction to Trigonometry, Some Applications of Trigonometry, Circles, Constructions, Areas Related to Circles, Surface Areas & Volumes, Statistics, Probability), Science (Chemical Reactions & Equations, Acids Bases & Salts, Metals & Non-metals, Carbon & its Compounds, Periodic Classification, Life Processes, Control & Coordination, How do Organisms Reproduce, Heredity & Evolution, Light Reflection & Refraction, Human Eye & Colourful World, Electricity, Magnetic Effects of Electric Current, Our Environment), Social Science (History: Nationalism in Europe, Nationalism in India, The Making of a Global World, Age of Industrialisation, Print Culture; Geography: Resources & Development, Forest & Wildlife, Water Resources, Agriculture, Minerals & Energy Resources, Manufacturing Industries, Lifelines of National Economy; Political Science: Power Sharing, Federalism, Gender Religion & Caste, Political Parties, Outcomes of Democracy, Challenges to Democracy; Economics: Development, Sectors of Indian Economy, Money & Credit, Globalisation, Consumer Rights), English (First Flight + Footprints Without Feet: comprehension, grammar tenses/modals/voice/reported speech/clauses, writing: letter/article/story), Hindi Course A/B (Kshitij, Kritika, Sparsh, Sanchayan: prose, poetry, grammar, writing)" },
+    { emoji: "📐", label: "CBSE Class 10 Maths + Science", exam: "CBSE Class 10 Maths and Science", hours: 4,
+      syllabus: "Mathematics (Real Numbers, Polynomials, Pair of Linear Equations, Quadratic Equations, AP, Triangles, Coordinate Geometry, Trigonometry & Applications, Circles, Constructions, Areas, Surface Areas & Volumes, Statistics, Probability), Science (Chemical Reactions, Acids Bases Salts, Metals Non-metals, Carbon Compounds, Periodic Classification, Life Processes, Control & Coordination, Reproduction, Heredity Evolution, Light Reflection & Refraction, Human Eye, Electricity, Magnetic Effects, Our Environment)" },
+    { emoji: "🔬", label: "CBSE Class 12 Physics", exam: "CBSE Class 12 Physics Board Exam", hours: 4,
+      syllabus: "Electrostatics (Coulomb's Law, Electric Field, Electric Dipole, Gauss's Law & Applications, Electric Potential, Capacitors, Dielectrics), Current Electricity (Ohm's Law, Kirchhoff's Laws, Wheatstone Bridge, Meter Bridge, Potentiometer, Cells in Series/Parallel), Magnetic Effects of Current (Biot-Savart, Ampere's Law, Solenoid, Force on Moving Charge, Cyclotron, Torque on Current Loop, Moving Coil Galvanometer), Magnetism & Matter (Bar Magnet, Magnetism & Gauss's Law, Earth's Magnetism, Magnetic Properties), EMI & AC (Faraday's Law, Lenz Law, Eddy Currents, Self/Mutual Inductance, AC Generator, Transformer, LCR Circuits, Power Factor, Resonance, Wattless Current), Electromagnetic Waves (EM Spectrum, Displacement Current), Ray Optics (Reflection, Refraction, TIR, Lens, Mirror, Prism, Microscope, Telescope, Refraction through Spherical Surfaces), Wave Optics (Huygens Principle, Interference, YDSE, Diffraction, Single Slit, Polarisation, Brewster's Law, Resolving Power), Dual Nature of Radiation & Matter (Photoelectric Effect, Einstein's Equation, de Broglie Relation, Davisson-Germer), Atoms (Rutherford, Bohr Model, Hydrogen Spectrum), Nuclei (Mass Defect, Binding Energy, Radioactivity Alpha/Beta/Gamma Decay, Nuclear Fission, Nuclear Fusion, Half Life, Mean Life), Semiconductor Electronics (Intrinsic/Extrinsic Semiconductors, P-N Junction Diode, Zener Diode, LED, Photodiode, Solar Cell, Transistor as Amplifier/Switch, Logic Gates: OR AND NOT NAND NOR), Communication Systems (Propagation, Amplitude Modulation, Basic Communication Blocks)" },
+    { emoji: "🧪", label: "CBSE Class 12 Chemistry", exam: "CBSE Class 12 Chemistry Board Exam", hours: 4,
+      syllabus: "Solutions (Types, Expressing Concentration, Solubility, Vapour Pressure, Raoult's Law, Ideal/Non-ideal Solutions, Colligative Properties, Van't Hoff Factor), Electrochemistry (Galvanic Cell, EMF, Nernst Equation, Gibbs Energy, Conductance, Kohlrausch's Law, Electrolysis, Batteries, Fuel Cells, Corrosion), Chemical Kinetics (Rate of Reaction, Factors, Rate Law, Order & Molecularity, Integrated Rate Equations Zero/First Order, Half Life, Pseudo First Order, Arrhenius Equation, Activation Energy, Collision Theory), d & f Block Elements (Electronic Configurations, Oxidation States, Interstitial Compounds, Alloys, Lanthanoids Actinoids, Mischmetall), Coordination Compounds (Werner's Theory, VBT, CFT, IUPAC Nomenclature, Isomerism, CFT Splitting, Colour, Magnetic Properties, Bonding, Applications in Extraction/Analysis/Medicines), Haloalkanes & Haloarenes (Nomenclature, SN1 SN2 Mechanisms, Chirality, Optical Rotation, Grignard Reagent), Alcohols Phenols Ethers (Nomenclature, Preparation, Properties, Lucas Test, Williamson Synthesis), Aldehydes Ketones Carboxylic Acids (Nomenclature, Preparation, Reactions, Nucleophilic Addition, Cannizzaro, Aldol Condensation, HVZ, Esterification), Amines (Nomenclature, Basic Strength, Preparation, Reactions, Diazonium Salts), Biomolecules (Carbohydrates: Mono/Disaccharides, Polysaccharides, Reducing/Non-reducing Sugars; Proteins: Amino Acids, Peptide Bonds, Primary/Secondary/tertiary Structure, Enzymes; Nucleic Acids: DNA/RNA; Vitamins Classification), Polymers (Classification, Addition/Condensation, Copolymer, Important Polymers: Polythene, Nylon, PVC, Teflon, Bakelite, Buna-N/S, Rubber), Chemistry in Everyday Life (Drugs: Analgesics, Antibiotics, Antiseptics, Antacids, Antihistamines; Chemicals in Food: Preservatives, Artificial Sweeteners; Cleansing Agents: Soaps Detergents)" },
+    { emoji: "🧬", label: "CBSE Class 12 Biology", exam: "CBSE Class 12 Biology Board Exam", hours: 4,
+      syllabus: "Reproduction in Organisms (Asexual, Sexual), Sexual Reproduction in Flowering Plants (Stamen, Pistil, Pollination, Double Fertilisation, Endosperm Embryo Development, Seed, Apomixis), Human Reproduction (Male/Female Reproductive System, Spermatogenesis, Oogenesis, Menstrual Cycle, Fertilisation, Implantation, Pregnancy, Parturition, Lactation), Reproductive Health (Population, Birth Control, MTP, STIs, Infertility, ART IVF ZIFT GIFT), Principles of Inheritance & Variation (Mendel's Laws, Incomplete Dominance, Codominance, Multiple Alleles, Dihybrid Cross, Chromosomal Theory, Linkage Recombination, Sex Determination, Pedigree, Mendelian Disorders, Chromosomal Disorders Down Klinefelter Turner), Molecular Basis of Inheritance (DNA as Genetic Material, Griffith/Avery/Hershey-Chase, DNA Replication, Transcription, Translation Genetic Code, Lac Operon, Human Genome Project, DNA Fingerprinting), Evolution (Origin of Life, Darwinism, Lamarckism, Hardy-Weinberg, Adaptive Radiation, Human Evolution), Human Health & Disease (Pathogens, Immunity Innate/Acquired, Vaccines, Allergies, Autoimmunity, AIDS Cancer, Drugs Alcohol), Strategies for Enhancement in Food Production (Animal Husbandry, Plant Breeding, Tissue Culture, Single Cell Protein), Microbes in Human Welfare (Household Products, Industrial, Sewage Treatment, Biogas, Biocontrol, Biofertilisers), Biotechnology (Principles: Restriction Enzymes, PCR, Cloning Vectors; Applications: Bt Cotton, Pest Resistant Plants, Insulin, Gene Therapy, Transgenic Animals, Ethical Issues), Organisms & Populations (Organism & Environment, Population Attributes Growth Models, Population Interactions Predation Mutualism Parasitism), Ecosystem (Structure, Productivity, Decomposition, Energy Flow 10% Law, Ecological Pyramids, Succession, Carbon Phosphorus Cycle), Biodiversity & Conservation (Levels, Patterns, Importance, Loss, In-situ/Ex-situ Conservation, Endangered Species, Hotspots, Red Data Book, National Parks Sanctuaries), Environmental Issues (Air/Water/Noise Pollution, Solid Wastes, Greenhouse Effect, Global Warming, Ozone Depletion, Deforestation, Eutrophication, Biomagnification)" },
+    { emoji: "📊", label: "CBSE Class 12 Maths", exam: "CBSE Class 12 Mathematics Board Exam", hours: 5,
+      syllabus: "Relations & Functions (Types of Relations: Reflexive Symmetric Transitive Equivalence, One-One Onto Inverse Functions, Composite Functions, Binary Operations), Inverse Trigonometric Functions (Principal Value Branch, Properties), Matrices (Order, Types, Addition Multiplication, Transpose, Symmetric Skew, Invertible Matrices, Elementary Operations), Determinants (Properties, Area of Triangle, Minors Cofactors, Adjoint, Inverse, System of Linear Equations, Cramer's Rule), Continuity & Differentiability (Continuity of Functions, Differentiability, Derivatives of Composite/Implicit/Inverse Trigonometric/Exponential/Logarithmic Functions, Logarithmic Differentiation, Parametric Forms, Second Order Derivatives, Rolle's & Lagrange's MVT), Applications of Derivatives (Rate of Change, Increasing/Decreasing, Tangents Normals, Approximations, Maxima Minima, Word Problems), Integrals (Indefinite: Substitution, Partial Fractions, By Parts, Standard Forms; Definite Integral Properties, Fundamental Theorem, Limit of Sum, Area between two curves), Applications of Integrals (Area under simple curves: lines circles parabolas ellipses; area between two curves), Differential Equations (Order Degree, General/Particular Solutions, Variable Separable, Homogeneous DE, Linear DE of form dy/dx + Py = Q), Vectors (Scalar/Vector, Magnitude, Direction Cosines, Addition, Dot Product, Cross Product, Projection, Scalar Triple Product), 3D Geometry (Direction Ratios Cosines, Line in Space Cartesian & Vector Equation, Angle between Two Lines, Shortest Distance, Plane in Normal/Intercept Form, Distance from Point to Plane, Angle between Planes, Co-planarity), Linear Programming (Formulation of LPP, Graphical Solution, Feasible Region, Corner Point Method, Bounded/Unbounded), Probability (Conditional Probability, Multiplication Theorem, Independent Events, Total Probability, Bayes' Theorem, Random Variables Probability Distribution, Mean Variance, Bernoulli Trials, Binomial Distribution)" },
+    { emoji: "📖", label: "CBSE Class 12 English Core", exam: "CBSE Class 12 English Core Board Exam", hours: 2,
+      syllabus: "Reading (Unseen Passages: Factual/Descriptive/Literary, Note-Making), Writing Skills (Notice, Advertisement, Poster, Formal/Informal Invitation & Reply, Letter to Editor, Application for Job, Article, Report, Speech, Debate), Grammar (Tenses, Clauses, Determiners, Active/Passive, Reported Speech, Prepositions, Modals), Literature (Flamingo Prose: Last Lesson, Lost Spring, Deep Water, The Rattrap, Indigo, Going Places, Poets & Pancakes, The Interview; Flamingo Poetry: My Mother at Sixty-six, Keeping Quiet, A Thing of Beauty, A Roadside Stand, Aunt Jennifer's Tigers; Vistas: Third Level, Tiger King, The Enemy, On the Face of It, Should Wizard hit Mommy, Evans tries an O-level, Memories of Childhood)" },
+    { emoji: "🏴", label: "Bihar Board (BSEB) Class 10/12", exam: "Bihar Board (BSEB) Class 10 or 12", hours: 4,
+      syllabus: "Bihar School Examination Board (BSEB / Bihar Board) Class 10 or Class 12. BSEB follows NCERT pattern with Bihar-specific questions. Choose subject(s): Mathematics, Science (Physics Chemistry Biology), Social Science (History: India & Contemporary World Bihar's role (Champaran Satyagraha, JP Movement, Bihar in Freedom Struggle), Geography (Resources, Agriculture, Bihar rivers Kosi/Gandak/Sone/Ganga, Industries in Bihar), Political Science/Civics (Federalism, Bihar Panchayati Raj), Economics (Development, Sectors of Bihar Economy)), Hindi, English, Sanskrit. Exam pattern: 50% objective (1-mark MCQs), 30% short answer (2/3 marks), 20% long answer (5 marks); total 100 marks (Theory 80 + Practical/Internal 20 in applicable subjects). Include Bihar GK: Chhath Puja, Madhubani painting, Bodhgaya, Nalanda, Rajgir, Vaishali, Jayaprakash Narayan, Dr Rajendra Prasad, Karpoori Thakur, Dashrath Manjhi." },
+    { emoji: "🌾", label: "UP Board Class 10/12", exam: "UP Board (UPMSP) Class 10 or 12", hours: 4,
+      syllabus: "Uttar Pradesh Madhyamik Shiksha Parishad Class 10 or 12. UP Board follows NCERT pattern in Hindi and English medium. Choose subject: गणित (Maths), विज्ञान (Science), सामाजिक विज्ञान (Social Science: History with UP Freedom Movement 1857 Chauri-Chaura, Geography of UP: Ganga Yamuna Doab, Agriculture, Mughal Awadh, Chikankari Kathak; Civics, Economics), हिन्दी, English, Sanskrit. UP Board paper pattern: 70 marks theory + 30 marks internal/practical, mix of very short (1 mark), short (2-3 marks), long (5-8 marks) answers; objective MCQ section of 20 marks." },
+    { emoji: "🏛", label: "ICSE Class 10 / ISC Class 12", exam: "ICSE Class 10 or ISC Class 12 (CISCE)", hours: 4,
+      syllabus: "Indian Certificate of Secondary Education (ICSE, Class 10) or Indian School Certificate (ISC, Class 12) by CISCE. ICSE compulsory: English Language & Literature, Second Language (Hindi/Sanskrit/Regional), History-Civics-Geography, Mathematics, Science (Physics/Chemistry/Biology); electives: Computer Applications, Economics, Commercial Studies, Physical Education, Art, Environmental Science etc. ISC three/four electives: Physics, Chemistry, Maths/Biology, Computer Science, Commerce, Accounts, Business Studies, Economics, History, Geography, Political Science, Sociology, Psychology, English. ICSE/ISC has 20% internal assessment/project work in every subject; exam pattern includes MCQs, short answers, long essays, practicals." },
+    { emoji: "🌴", label: "Maharashtra / Other State Board", exam: "Other State Board (Class 10/12)", hours: 4,
+      syllabus: "Type your state board, class, and subjects. Works for: Maharashtra HSC/SSC, Rajasthan RBSE/BSER, Madhya Pradesh MPBSE, West Bengal WBCHSE/WBBSE, Tamil Nadu Samacheer Kalvi, Karnataka SSLC/2nd PUC, Kerala SSLC/HSE, Andhra Pradesh BIEAP, Telangana TSBIE, Gujarat GSEB, Punjab PSEB, Haryana HBSE, Odisha CHSE/BSE, Jharkhand JAC, Chhattisgarh CGBSE, Assam SEBA/AHSEC, J&K JKBOSE. Tell me the subject(s) and I will build a complete NCERT-based board plan with PYQ focus." },
+  ],
   state: [
     { emoji: "🗺️", label: "BPSC Prelims (Bihar)", exam: "BPSC Prelims (Bihar PSC)", hours: 5, lang: "hinglish",
       syllabus: "General Studies: General Science (Physics, Chemistry, Biology basics), History of India and Bihar (Ancient: Bihar in Mahajanapadas, Maurya Empire, Ashoka; Medieval: Bihar under Delhi Sultanate and Mughals; Modern: Bihar in Freedom Struggle, Champaran, Gandhiji in Bihar), Geography of India and Bihar (Physical Features, Rivers of Bihar (Kosi, Gandak, Sone, Ganga), Agriculture, Minerals, Industries, Transport), Indian Polity and Economy (Constitution, Panchayati Raj, Bihar Panchayati Raj Act, Five Year Plans, Bihar Economy: Agriculture, Industries, Infrastructure, Growth), National Movement and Role of Bihar, General Mental Ability, Current Events of National and International Importance, Bihar Special: Culture, Festivals (Chhath), Fairs, Folk Dances, Tourism, Personalities of Bihar (Jayaprakash Narayan, Rajendra Prasad, Kunwar Singh, Karpoori Thakur)" },
@@ -106,10 +130,6 @@ const EXAM_PRESETS = {
       syllabus: "Engineering Mathematics (Linear Algebra, Calculus, Differential Equations, Complex Variables, Probability Statistics, Numerical Methods), Core Engineering Subject topics (varies by branch: Computer Science, Mechanical, Electrical, Civil, Electronics etc. — include full branch-specific syllabus from GATE syllabus), General Aptitude (Verbal Ability: Grammar, Sentence Completion, Analogies; Numerical Ability: Numerical Computation, Estimation, Data Interpretation)" },
     { emoji: "📊", label: "CAT MBA Entrance", exam: "CAT (Common Admission Test for IIMs)", hours: 5,
       syllabus: "Verbal Ability and Reading Comprehension (Reading Passages, Para Jumbles, Odd One Out, Para Summary, Sentence Correction, Vocabulary), Data Interpretation and Logical Reasoning (Tables, Bar Charts, Pie Charts, Line Graphs, Seating Arrangements, Puzzles, Blood Relations, Syllogisms, Grid-Based DI, Caselets), Quantitative Aptitude (Arithmetic: Percentages, Profit Loss, Ratio, Time Work, Time Speed, SI/CI; Algebra: Linear Equations, Quadratics, Functions, Progressions; Geometry and Mensuration; Number System; Modern Maths: Permutation Combination, Probability, Set Theory, Logarithms)" },
-    { emoji: "🏫", label: "CBSE Class 12 Physics", exam: "CBSE Class 12 Physics (Board Exam)", hours: 4,
-      syllabus: "Electrostatics (Coulomb's Law, Electric Field, Gauss Law, Potential, Capacitance), Current Electricity (Ohm's Law, Kirchhoff, Wheatstone Bridge, Potentiometer), Magnetism and Matter (Biot-Savart, Ampere Law, Moving Coil Galvanometer), EMI and AC (Faraday's Law, Lenz Law, AC Generator, Transformer, LCR Circuits), Electromagnetic Waves, Ray Optics (Mirror, Lens, Prism, Telescope, Microscope), Wave Optics (Interference, Diffraction, Polarisation, YDSE), Dual Nature of Radiation and Matter, Atoms (Bohr Model), Nuclei (Radioactivity, Fission Fusion), Semiconductors (Diodes, Transistors, Logic Gates), Communication Systems" },
-    { emoji: "🏫", label: "CBSE Class 10 All Subjects", exam: "CBSE Class 10 Board Exams", hours: 4,
-      syllabus: "Mathematics (Real Numbers, Polynomials, Pair of Linear Equations, Quadratic Equations, AP, Triangles, Coordinate Geometry, Trigonometry, Circles, Constructions, Areas Related to Circles, Surface Areas Volumes, Statistics Probability), Science (Chemical Reactions, Acids Bases Salts, Metals Non-Metals, Carbon Compounds, Life Processes, Control Coordination, Reproduction, Heredity, Light, Human Eye, Electricity, Magnetic Effects, Our Environment), Social Science (History: Nationalism in Europe/India, Nationalist Movement, Geography: Resources, Agriculture, Manufacturing; Civics: Power Sharing, Federalism, Democracy; Economics: Development, Sectors, Globalisation)" },
   ],
   college: [
     { emoji: "🎓", label: "B.Tech 1st Year Engineering Physics", exam: "B.Tech First Year Engineering Physics", hours: 5,
@@ -415,6 +435,129 @@ function resourceIcon(p) {
   return "📚";
 }
 
+/* ---------- Honest paid course recommendations (no sponsorships, researched from topper reviews) ---------- */
+function getPaidRecommendations(examName) {
+  const e = (examName||"").toLowerCase();
+  const recs = [];
+  if (/jee|engineering entrance|bitsat|wbjee|mhtcet|vit|srm/.test(e)) {
+    recs.push({
+      name: "Physics Wallah — Arjuna / Lakshya Batch (JEE)",
+      teacher: "Alakh Pandey & team (PW)",
+      price: "~₹4,200 per year (1/10th of Kota)",
+      why: "Best value-for-money in India today. Same Alakh Pandey style as free YouTube but adds daily DPPs, weekly tests, live doubt sessions, batch community, and structured schedule. Consistently produces JEE Main/Advanced selections at a price every middle-class family can afford.",
+      url: "https://www.pw.live/study/batches",
+    });
+    recs.push({
+      name: "Alternative: Unacademy Plus (if you need specific teacher)",
+      teacher: "Choose your teacher (Namo Kaul, Piyush Maheshwari etc.)",
+      price: "~₹30,000 per year (expensive)",
+      why: "Good if you bond with a specific teacher and can afford it. Lets you pick individual teachers per subject. Overpriced for most students compared to PW.",
+      url: "https://unacademy.com/goal/jee-main-and-advanced-preparation/TMUVD",
+    });
+  }
+  if (/neet|medical|aiims/.test(e)) {
+    recs.push({
+      name: "Physics Wallah — Yakeen / Lakshya NEET Batch",
+      teacher: "PW (Alakh Pandey, Sarvesh Sir, Neela Bakore tutors)",
+      price: "~₹4,500 per year",
+      why: "Same budget-winning formula: daily lectures, DPPs with solutions, weekly tests, personal doubt support, NEET-focused content. Dozens of students get into AIIMS/Govt medical colleges from these batches every year.",
+      url: "https://www.pw.live/study/batches",
+    });
+  }
+  if (/upsc|civil services|ias/.test(e)) {
+    recs.push({
+      name: "FREE is genuinely best for UPSC — don't pay",
+      teacher: "Mrunal Patel (Economy), Study IQ, OnlyIAS, Vision IAS free YT",
+      price: "₹0 (buy only monthly current-affairs magazine ~₹80)",
+      why: "90% of UPSC toppers study from free sources (NCERT + Mrunal + The Hindu + PYQs). Coachings charge ₹1-2 lakh for the same NCERT content and have a myth of 'mentorship'. We strongly recommend NOT paying for UPSC coaching; use our plan, free videos above, and self-study. If you MUST have test series, Vision IAS PT test series (~₹8,000) is the gold standard.",
+      url: "https://www.youtube.com/@mrunalpatel.org",
+    });
+  }
+  if (/ssc|bank|railway|cgl|chsl|ibps|rrb|po|clerical/.test(e)) {
+    recs.push({
+      name: "Adda247 Mahapack (SSC/Bank/Railway)",
+      teacher: "Adda247 faculty team",
+      price: "~₹2,000–₹5,000 for 1-2 years",
+      why: "Best mock-test series and topic-wise question banks for govt exams. Free YouTube content is good for concepts but their paid mocks replicate the actual exam interface and give you all-India rank — essential for these speed-based exams.",
+      url: "https://www.adda247.com/maha_pack",
+    });
+  }
+  if (/nda|cds|defence/.test(e)) {
+    recs.push({
+      name: "Defence Wallah (PW) NDA Batch",
+      teacher: "PW Defence team",
+      price: "~₹3,500",
+      why: "Covers Maths, GAT, English for NDA/CDS with SSB guidance. Best budget option.",
+      url: "https://www.pw.live/defence",
+    });
+  }
+  if (/ctet|tet|teaching/.test(e)) {
+    recs.push({
+      name: "Himanshi Singh (Let's LEARN) — CTET Paid Batch",
+      teacher: "Himanshi Singh",
+      price: "~₹1,500",
+      why: "Himanshi Ma'am is the #1 CTET teacher in India. Her free YouTube is already enough for many; paid batch adds mock tests and doubt support.",
+      url: "https://www.youtube.com/@LetsLEARN2016",
+    });
+  }
+  if (/bpsc|uppsc|mpsc|ras|gpsc|state psc|uppcs|bihar psc/.test(e)) {
+    recs.push({
+      name: "FREE YouTube (Khan Sir, Study IQ, OnlyIAS) + state-specific PYQ book",
+      teacher: "Khan Sir (GS), Study IQ, OnlyIAS, Utkarsh Classes",
+      price: "₹0 (optional: Utkarsh/Chronicle state-specific notes ~₹500)",
+      why: "State PSCs are NCERT-heavy; free YouTube + NCERT + our plan covers pre + mains for most students. Paid coaching is often a waste in Patna/Lucknow — if you want test series, pick the most popular local institute's mocks (~₹2,000).",
+      url: "https://www.youtube.com/@khangsresearchcentre1685",
+    });
+  }
+  if (/class 10|class 12|cbse|bseb|up board|icse|isc|board exam/.test(e)) {
+    recs.push({
+      name: "Magnet Brains + Exam Fear + our AI — FREE is enough for 90%+",
+      teacher: "Magnet Brains (all subjects, Hindi+English)",
+      price: "₹0",
+      why: "Class 10/12 boards reward NCERT mastery + PYQ practice. Magnet Brains covers every NCERT chapter line-by-line for free. Pair with our notes + the previous 5-year CBSE/BSEB/UP paper books (~₹200 each on Amazon) and you will score 90%+ without spending a rupee.",
+      url: "https://www.youtube.com/@MagnetBrains",
+    });
+    if (/physics|chemistry|maths|biology|pcm|pcmb/.test(e)) {
+      recs.push({
+        name: "If you also target JEE/NEET alongside boards: PW Udaan/Lakshya",
+        teacher: "Physics Wallah",
+        price: "~₹3,500–4,200",
+        why: "If you are taking Class 11/12 and preparing for competitive exams at the same time, PW batches are the best budget option and cover both boards + entrance.",
+        url: "https://www.pw.live/study/batches",
+      });
+    }
+  }
+  if (/gate|bt[\.\s]?ech|m\.?tech/.test(e) && !/jee|neet/.test(e)) {
+    recs.push({
+      name: "GATE Wallah (PW) / Made Easy (if you can afford)",
+      teacher: "PW GATE faculty or Made Easy Delhi faculty",
+      price: "PW ~₹5,000 · Made Easy ~₹35,000",
+      why: "PW has affordable GATE batches; Made Easy is the legacy coaching but very expensive. For core subjects, free Neso Academy/Gate Smashers videos + our notes + previous 15-year GATE papers will get you a good rank if you are self-motivated.",
+      url: "https://www.pw.live/gate-cse",
+    });
+  }
+  if (/mbbs|medical college|anatomy|physiology|biochemistry/.test(e)) {
+    recs.push({
+      name: "PW MedEd MBBS Batch + Marrow/Prepladder",
+      teacher: "Rajesh Kaushal (Anatomy), Dr. Najeeb (concepts)",
+      price: "PW MedEd ~₹4,000 · Marrow/Prepladder ~₹30,000/year (for NEET-PG)",
+      why: "For MBBS 1st year, Dr. Najeeb's free lectures on YouTube are legendary. Marrow/Prepladder are required for NEET-PG preparation but NOT for 1st year university exams — stick to free lectures, our notes, and your standard textbooks (Gray's, Guyton, Harper, Robbins).",
+      url: "https://www.youtube.com/@DrNajeebLectures",
+    });
+  }
+  if (!recs.length) {
+    // Generic advice
+    recs.push({
+      name: "Free resources first (always)",
+      teacher: "YouTube educators on this page",
+      price: "₹0",
+      why: "Always start with the free resources above. Self-study with good free videos, our AI tutor, and NCERT/textbooks beats paid coaching for most exams. Pay for a course ONLY if you need structured live classes + mock tests + doubt support AND have tried free for 1-2 weeks.",
+      url: "#",
+    });
+  }
+  return recs.slice(0, 2); // max 2 recs to not overwhelm
+}
+
 function renderResults(jobId, j) {
   if (j.error) { showError(j.error); return; }
   const pkg = j.package;
@@ -531,6 +674,25 @@ function renderResults(jobId, j) {
   /* ---------- Resources (grouped by chapter, all open in new tab) ---------- */
   const rByCh = {};
   (pkg.resources||[]).forEach(r => { (rByCh[r.chapter] = rByCh[r.chapter]||[]).push(r); });
+  const paidRecs = getPaidRecommendations(pkg.exam);
+  const paidRecsHtml = paidRecs.length ? `
+    <div class="paid-recs-card">
+      <div class="paid-recs-head">
+        <h4>💰 Optional structured courses (not required)</h4>
+        <p>All AI features, notes, MCQs, flashcards and free YouTube resources above are <b>FREE forever</b>. If you want live classes, DPP sheets, weekly tests, or personal doubt support, here is our honest recommendation — researched from actual topper reviews, not paid sponsorships:</p>
+      </div>
+      ${paidRecs.map(p => `
+        <div class="paid-rec">
+          <div class="paid-rec-title">
+            ${esc(p.name)}
+            <span class="paid-rec-price">${esc(p.price)}</span>
+          </div>
+          <div class="paid-rec-teacher">${esc(p.teacher)}</div>
+          <div class="paid-rec-why">${esc(p.why)}</div>
+          <a class="paid-rec-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Learn more ↗</a>
+        </div>`).join("")}
+      <p class="paid-recs-footnote">⚠️ Exam Mitra is <b>not affiliated</b> with any of these courses. Links are for information only. If your budget is tight, the free YouTube resources above + our AI tutor are enough to crack any exam — don't let anyone pressure you into paying.</p>
+    </div>` : "";
   const resourcesHtml = Object.keys(rByCh).length
     ? Object.entries(rByCh).map(([ch, rs]) => `
         <h4 style="margin:20px 0 10px;font-size:15px">${esc(ch)}</h4>
@@ -546,8 +708,8 @@ function renderResults(jobId, j) {
               ${r.why ? `<div class="resource-why">${esc(r.why)}</div>` : ""}
             </div>
             <div style="align-self:center;color:var(--indigo-500);font-weight:700;font-size:18px">↗</div>
-          </a>`).join("")}`).join("")
-    : `<p class="hint">No resources found for this topic.</p>`;
+          </a>`).join("")}`).join("") + paidRecsHtml
+    : `<p class="hint">No resources found for this topic.</p>` + paidRecsHtml;
 
   /* ---------- Notes ---------- */
   const notesHtml = (pkg.notes||[]).length

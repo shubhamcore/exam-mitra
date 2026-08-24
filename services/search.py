@@ -386,12 +386,42 @@ CURATED_RESOURCES = {
         {"title": "Hindi Literature / Grammar | Magnet Brains", "url": "https://www.youtube.com/results?search_query=hindi+grammar+magnet+brains+class+10+12", "platform": "youtube", "teacher": "Magnet Brains", "why": "Hindi grammar and literature for CBSE/State boards."},
         {"title": "Hindi for Competitive Exams | Rukmani Prakashan / Nitin Sir", "url": "https://www.youtube.com/results?search_query=hindi+competitive+exam+nitin+gupta+sir", "platform": "youtube", "teacher": "Nitin Gupta Sir", "why": "Hindi for SSC, Bank, Railway, UPSC, State PSC."},
     ],
-    # ===================== CBSE / CLASS 11-12 =====================
+    # ===================== CBSE / CLASS 10 / 12 / BOARDS =====================
+    "class 10": [
+        {"title": "Class 10 All Subjects Full Course FREE | Magnet Brains", "url": "https://www.youtube.com/results?search_query=class+10+all+subjects+magnet+brains+full+chapter+numericals", "platform": "youtube", "teacher": "Magnet Brains", "why": "BEST free Class 10 NCERT line-by-line explanation for CBSE/BSEB/UP Board all subjects (Maths, Science, SST, English, Hindi)."},
+        {"title": "Class 10 Maths + Science | Physics Wallah Udaan Batch", "url": "https://www.youtube.com/results?search_query=class+10+physics+wallah+udaan+batch+full+course", "platform": "youtube", "teacher": "Physics Wallah Udaan", "why": "Complete Class 10 CBSE board prep with PYQ practice and numerical solving."},
+        {"title": "Class 10 SST | Magnet Brains Social Science", "url": "https://www.youtube.com/results?search_query=class+10+social+science+magnet+brains+history+civics+geography+economics+full+chapter", "platform": "youtube", "teacher": "Magnet Brains", "why": "Complete Class 10 History/Geography/Civics/Economics NCERT explanation in Hindi."},
+        {"title": "Class 10 Science | Vedantu CBSE", "url": "https://www.youtube.com/results?search_query=class+10+science+vedantu+one+shot+full+chapter+numericals", "platform": "youtube", "teacher": "Vedantu", "why": "CBSE board exam focused Science chapters with NCERT question answers."},
+        {"title": "Class 10 Hindi Grammar | Magnet Brains", "url": "https://www.youtube.com/results?search_query=class+10+hindi+grammar+magnet+brains+course+b", "platform": "youtube", "teacher": "Magnet Brains", "why": "Hindi vyakaran (रस, अलंकार, संधि, समास, वाक्य) for CBSE/BSEB/UP Board."},
+    ],
     "class 11": [
         {"title": "Class 11 Full Syllabus | Physics Wallah Arjuna Batch", "url": "https://www.youtube.com/results?search_query=class+11+physics+wallah+arjuna+batch+full+chapter", "platform": "youtube", "teacher": "Physics Wallah Arjuna", "why": "Complete Class 11 PCMB for CBSE + JEE/NEET foundation."},
+        {"title": "Class 11 NCERT | Magnet Brains", "url": "https://www.youtube.com/results?search_query=class+11+magnet+brains+physics+chemistry+maths+biology+full+chapter", "platform": "youtube", "teacher": "Magnet Brains", "why": "Free NCERT-focused Class 11 all subjects for board exam prep."},
     ],
     "class 12": [
-        {"title": "Class 12 Board Exam Preparation | Physics Wallah Lakshya", "url": "https://www.youtube.com/results?search_query=class+12+physics+wallah+lakshya+batch+board+exam", "platform": "youtube", "teacher": "Physics Wallah Lakshya", "why": "Complete Class 12 CBSE board prep + JEE/NEET."},
+        {"title": "Class 12 Board Exam Preparation | Physics Wallah Lakshya Batch", "url": "https://www.youtube.com/results?search_query=class+12+physics+wallah+lakshya+batch+board+exam", "platform": "youtube", "teacher": "Physics Wallah Lakshya", "why": "Complete Class 12 CBSE board prep + JEE/NEET."},
+        {"title": "Class 12 NCERT PYQs & Sample Papers | CBSE Class Videos", "url": "https://www.youtube.com/results?search_query=class+12+cbse+sample+paper+solutions+2024-25+physics+chemistry+maths+biology", "platform": "youtube", "teacher": "CBSE Class Videos / Various", "why": "Previous year CBSE board questions and latest sample papers with full solutions."},
+        {"title": "Class 12 NCERT Full Chapter | Magnet Brains", "url": "https://www.youtube.com/results?search_query=class+12+magnet+brains+physics+chemistry+biology+maths+full+chapter", "platform": "youtube", "teacher": "Magnet Brains", "why": "NCERT line-by-line explanation in Hindi + English for board exams."},
+    ],
+    "cbse": [
+        {"title": "CBSE Official Website (Sample Papers, Syllabus)", "url": "https://cbseacademic.nic.in/", "platform": "cbse", "teacher": "CBSE Academic", "why": "Official CBSE curriculum, sample question papers (SQP), marking scheme for current year."},
+        {"title": "NCERT Books FREE Download", "url": "https://ncert.nic.in/textbook.php", "platform": "ncert", "teacher": "NCERT", "why": "ALL NCERT textbooks free PDF download — the single most important source for CBSE and most state boards."},
+    ],
+    "bseb": [
+        {"title": "Bihar Board Class 10/12 | Khan Sir / Khan GS + Magnet Brains", "url": "https://www.youtube.com/results?search_query=bihar+board+class+10+12+khan+sir+magnet+brains+model+paper+solution", "platform": "youtube", "teacher": "Khan Sir, Magnet Brains", "why": "BSEB Hindi-medium content, model paper solutions, objective question banks."},
+        {"title": "Bihar Board Official (BSEB)", "url": "http://biharboardonline.bihar.gov.in/", "platform": "bseb", "teacher": "BSEB Official", "why": "Bihar Board official website for syllabus, model papers, results."},
+    ],
+    "up board": [
+        {"title": "UP Board Class 10/12 | Magnet Brains Hindi Medium", "url": "https://www.youtube.com/results?search_query=up+board+class+10+12+magnet+brains+hindi+medium+full+chapter", "platform": "youtube", "teacher": "Magnet Brains", "why": "UP Board NCERT-based lectures in Hindi medium (गणित, विज्ञान, सामाजिक विज्ञान)."},
+        {"title": "UPMSP Official Website", "url": "https://upmsp.edu.in/", "platform": "upmsp", "teacher": "UPMSP Official", "why": "UP Board official syllabus, model papers, exam dates."},
+    ],
+    "icse": [
+        {"title": "ICSE / ISC Class 10 / 12 | Clarify Knowledge", "url": "https://www.youtube.com/results?search_query=icse+class+10+all+subjects+clarify+knowledge+one+shot+full+chapter", "platform": "youtube", "teacher": "Clarify Knowledge", "why": "ICSE Class 10 full syllabus free (Maths, Physics, Chem, Bio, History, English)."},
+        {"title": "ISC Class 12 | Clarify Knowledge / Sir Tarun Rupani", "url": "https://www.youtube.com/results?search_query=isc+class+12+clarify+knowledge+maths+physics+chemistry+biology+full+chapter", "platform": "youtube", "teacher": "Clarify Knowledge, Sir Tarun Rupani", "why": "ISC Class 12 board exam focused lectures and paper solutions."},
+    ],
+    "board exam": [
+        {"title": "NCERT Official — FREE Textbooks (all classes/subjects)", "url": "https://ncert.nic.in/textbook.php", "platform": "ncert", "teacher": "NCERT", "why": "DOWNLOAD ALL NCERT BOOKS FREE PDF — every Indian board follows NCERT."},
+        {"title": "Exam Fear Education (No.1 FREE education for Classes 6-12)", "url": "https://www.youtube.com/results?search_query=exam+fear+education+class+10+12+physics+chemistry+maths+biology+one+shot", "platform": "youtube", "teacher": "Exam Fear Education (Roshni Mam)", "why": "100% free Class 6-12 all subjects with detailed NCERT explanations."},
     ],
     # ===================== COLLEGE / UNIVERSITY (BTech / BSc / MBBS / BCom / LLB) =====================
     "engineering mathematics": [
