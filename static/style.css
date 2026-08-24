@@ -1841,3 +1841,180 @@ footer .tech span {
   .tutor-panel { right: 10px; bottom: 80px; width: calc(100vw - 20px); height: 70vh; }
   .tutor-fab { right: 14px; bottom: 14px; width: 54px; height: 54px; font-size: 26px; }
 }
+
+/* ===============================================================
+   Exam Mitra v2.4 — Spaced Repetition Dashboard + Review UI
+   =============================================================== */
+
+/* Dashboard */
+.dashboard-wrap { padding: 4px 0; }
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dash-stat-card {
+  padding: 16px;
+  border-radius: var(--r-lg);
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.dash-stat-card.accent-indigo {
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  border-color: #c7d2fe;
+}
+.dash-stat-card.accent-emerald {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border-color: #a7f3d0;
+}
+.dash-stat-card.accent-amber {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-color: #fde68a;
+}
+.dash-stat-card.accent-pink {
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+  border-color: #fbcfe8;
+}
+.dash-stat-num {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--indigo-700);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.dash-stat-card.accent-emerald .dash-stat-num { color: #065f46; }
+.dash-stat-card.accent-amber .dash-stat-num { color: #92400e; }
+.dash-stat-card.accent-pink .dash-stat-num { color: #9d174d; }
+.dash-stat-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-radar-wrap {
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.dash-radar-wrap svg { max-width: 100%; height: auto; }
+.dash-weak-wrap { margin-top: 18px; }
+.dash-weak-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--error-bg);
+  border-left: 3px solid var(--error);
+  border-radius: var(--r-sm);
+  margin: 8px 0;
+  font-size: 13.5px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Review tab (spaced repetition) */
+.review-wrap { padding: 4px 0; }
+.review-header { margin-bottom: 14px; }
+.review-queue-info {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #eef2ff, #fdf4ff);
+  border: 1px solid #e0e7ff;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.review-card {
+  max-width: 620px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 28px 24px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.review-progress {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--surface-2);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.review-chapter {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--indigo-600);
+  margin-bottom: 10px;
+}
+.review-question {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--text);
+  padding: 20px 0;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.review-answer-divider {
+  border-top: 1.5px dashed var(--border);
+  margin: 10px 0 16px;
+}
+.review-answer {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-2);
+  padding: 10px 0 20px;
+}
+.review-rate-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 10px;
+}
+.review-rate-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.rate-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 10px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rate-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.rate-btn.rate-1 { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.rate-btn.rate-2 { border-color: #fed7aa; background: #fff7ed; color: #9a3412; }
+.rate-btn.rate-3 { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+.rate-btn.rate-4 { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+.rate-btn.rate-5 { border-color: #a5b4fc; background: #eef2ff; color: #3730a3; }
+.review-card .btn-accent { width: 100%; margin-top: 14px; justify-content: center; padding: 12px; }

@@ -29,8 +29,28 @@ class DailyTask(BaseModel):
     day: int = Field(..., ge=1, description="Day number in the plan")
     date: Optional[str] = Field(None, description="ISO date (YYYY-MM-DD) if a start date is given")
     chapter: str = Field(..., description="Chapter/topic to cover that day")
-    hours: float = Field(..., ge=0.5, le=12, description="Recommended hours of focus")
+    hours: float = Field(..., ge=0.5, le=12, description="Recommended hours of focus (MUST be <= user's daily hours budget; max 12)")
     activities: List[str] = Field(..., description="Specific activities: watch lecture, read notes, solve MCQs, revise")
+
+    @field_validator("hours", mode="before")
+    @classmethod
+    def _clamp_hours(cls, v: Any) -> float:
+        """Clamp LLM-generated hours to the valid range (0.5-12) instead of crashing.
+
+        The LLM sometimes overshoots (e.g., generates 16.0h days when the daily
+        budget is 6h). Rather than failing the whole plan, we clamp and warn.
+        """
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return 3.0
+        if f < 0.5:
+            return 0.5
+        if f > 12.0:
+            # Keep it proportional — if the LLM asked for 16h on a 6h/day plan,
+            # it almost certainly meant "full budget day"
+            return 12.0
+        return round(f, 1)
 
 
 class Resource(BaseModel):

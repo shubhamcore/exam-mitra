@@ -26,7 +26,7 @@ RULES:
 3. Every 5-6 study days, schedule a REVISION & PRACTICE day (chapter name should be "Revision & Practice" and activities should be "Revise previous chapters, Solve PYQs, Make mistake notebook").
 4. For each study day:
    - "chapter": name of the main chapter/sub-topic to cover that day (break big chapters into specific sub-topics across days, e.g. "Kinematics: 1D Motion & Graphs" then "Kinematics: Projectile Motion" then "Kinematics: Relative Velocity")
-   - "hours": hours for that day (match the daily budget; 2-8 hours depending on budget)
+   - "hours": hours for that day. **CRITICAL**: this value MUST be between 2.0 and the user's daily budget (see "Daily study budget" above), and NEVER exceed the daily budget. If budget is 4h/day, use 3.5-4.0h; if budget is 6h/day, use 5-6h; if budget is 8h, use 7-8h; if budget is 10+h, cap at 10h. NEVER produce a day with more hours than the user's budget — this causes validation errors.
    - "activities": 4-6 SPECIFIC, DETAILED activities for that day. Be EXTREMELY specific:
      * Include WHICH educator lecture to watch (e.g., "Watch Alakh Pandey (PW) one-shot on 1D Kinematics")
      * Include WHICH problems to solve (e.g., "Solve NCERT exercise Q1-20 + last 10 years JEE Main PYQs on motion graphs", "Solve 30 MCQs from NEET previous year on cell organelles")

@@ -45,7 +45,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="2.4.0")
+app = FastAPI(title="Exam Mitra 📚", version="2.4.1")
 
 # ---------- Security middleware ----------
 
@@ -507,11 +507,14 @@ async def tutor_chat(job_id: str, req: TutorRequest):
 # ---------- Photo Syllabus Upload (multimodal vision OCR) ----------
 
 ALLOWED_UPLOAD_MIMES = {
-    "image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp",
-    "image/heic", "image/heif",
+    "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/bmp",
+    "image/heic", "image/heif", "image/heic-sequence",
     "application/pdf",
+    "application/octet-stream",  # browsers on some phones send this for images
+    "",                           # empty mime (try to detect from extension)
 }
-MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 MB
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif", "bmp", "pdf", "heic", "heif"}
+MAX_UPLOAD_BYTES = 12 * 1024 * 1024  # 12 MB
 
 
 class ExtractSyllabusRequest(BaseModel):
@@ -547,30 +550,61 @@ async def extract_syllabus(
             bucket.append(now)
             break
 
-    # Validate file type
-    if file.content_type and file.content_type not in ALLOWED_UPLOAD_MIMES:
-        raise HTTPException(400, f"Unsupported file type: {file.content_type}. Please upload a JPG, PNG, WEBP, or PDF image of your syllabus.")
-    # Validate extension as backup
-    if file.filename:
-        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-        if ext not in {"jpg", "jpeg", "png", "webp", "gif", "bmp", "pdf", "heic", "heif"}:
-            raise HTTPException(400, f"Unsupported file extension .{ext}. Please upload an image or PDF.")
-
-    # Read bytes (size-limited)
+    # --- Read & validate file ---
     data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, "File too large. Maximum 8 MB.")
 
-    # Detect mime from extension if not provided
-    mime = file.content_type or "image/jpeg"
-    if file.filename and file.filename.lower().endswith(".pdf"):
-        mime = "application/pdf"
-    elif file.filename and file.filename.lower().endswith(".png"):
-        mime = "image/png"
-    elif file.filename and file.filename.lower().endswith((".jpg", ".jpeg")):
-        mime = "image/jpeg"
-    elif file.filename and file.filename.lower().endswith(".webp"):
-        mime = "image/webp"
+    # Size check (generous — vision handles up to ~20MB input images fine)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"File too large ({len(data)/1024/1024:.1f} MB). Maximum 12 MB.")
+    if len(data) < 100:
+        raise HTTPException(400, "File is too small or empty. Please upload a clear image/PDF.")
+
+    mime = (file.content_type or "").lower().strip()
+    filename = file.filename or ""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    # Reject obvious non-image/non-PDF binary uploads early
+    if ext and ext not in ALLOWED_EXTENSIONS and mime and mime not in ALLOWED_UPLOAD_MIMES and not mime.startswith("image/"):
+        raise HTTPException(400, f"Unsupported file type '{mime or ext}'. Please upload a photo (JPG/PNG/WEBP/GIF) or PDF of your syllabus.")
+
+    # Resolve MIME robustly: extension > magic-byte sniff > browser-provided
+    if ext in ALLOWED_EXTENSIONS:
+        if ext == "pdf":
+            mime = "application/pdf"
+        elif ext in {"jpg", "jpeg"}:
+            mime = "image/jpeg"
+        elif ext == "png":
+            mime = "image/png"
+        elif ext == "webp":
+            mime = "image/webp"
+        elif ext == "gif":
+            mime = "image/gif"
+        elif ext == "bmp":
+            mime = "image/bmp"
+        elif ext in {"heic", "heif"}:
+            mime = "image/heic"
+    else:
+        # Magic-byte sniff (trusts content over browser mime)
+        head = data[:16]
+        if head.startswith(b"%PDF"):
+            mime = "application/pdf"
+        elif head.startswith(b"\x89PNG\r\n\x1a\n"):
+            mime = "image/png"
+        elif head.startswith(b"\xff\xd8"):
+            mime = "image/jpeg"
+        elif head.startswith(b"GIF87a") or head.startswith(b"GIF89a"):
+            mime = "image/gif"
+        elif head.startswith(b"RIFF") and b"WEBP" in data[:20]:
+            mime = "image/webp"
+        elif head.startswith(b"BM"):
+            mime = "image/bmp"
+        elif not mime or mime == "application/octet-stream":
+            # Fallback — Gemini can usually still read it; try JPEG
+            mime = "image/jpeg"
+
+    # Final sanity: Gemini Vision accepts images + pdf. If still something odd, reject.
+    if not (mime.startswith("image/") or mime == "application/pdf"):
+        raise HTTPException(400, f"Could not recognize file type ({mime}). Please upload a JPG, PNG, WEBP, GIF, or PDF.")
 
     lang_hint = {
         "en": "English",

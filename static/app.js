@@ -589,10 +589,12 @@ function renderResults(jobId, j) {
 
   const TABS = [
     { id: "overview",   label: "📊 Overview" },
+    { id: "dashboard",  label: "📈 Dashboard" },
     { id: "plan",       label: "📅 Daily Plan" },
     { id: "resources",  label: "🎬 Resources" },
     { id: "notes",      label: "📝 Notes" },
     { id: "flashcards", label: "🗂️ Flashcards" },
+    { id: "review",     label: "🔁 Review" },
     { id: "mcqs",       label: "✅ Practice MCQs" },
   ];
   const tabsHtml = TABS.map((t, i) =>
@@ -724,12 +726,53 @@ function renderResults(jobId, j) {
         </div>`).join("")
     : `<p class="hint">No notes generated.</p>`;
 
+  /* ---------- Dashboard: weak-area radar + mastery stats ---------- */
+  // Initialize SR/accuracy stores
+  if (typeof ensureSRInitialized !== "undefined") ensureSRInitialized(jobId, pkg.flashcards || []);
+  const dashData = (typeof buildDashboardStats === "function") ? buildDashboardStats(jobId, pkg) : null;
+
+  const dashboardHtml = dashData ? `
+    <div class="dashboard-wrap">
+      <div class="dash-stats-row">
+        <div class="dash-stat-card accent-indigo">
+          <div class="dash-stat-num">${dashData.dueToday}</div>
+          <div class="dash-stat-lbl">🔁 Cards due today</div>
+        </div>
+        <div class="dash-stat-card accent-emerald">
+          <div class="dash-stat-num">${dashData.totalMcqCorrect}/${dashData.totalMcq}</div>
+          <div class="dash-stat-lbl">✅ MCQs attempted</div>
+        </div>
+        <div class="dash-stat-card accent-amber">
+          <div class="dash-stat-num">${Math.round(dashData.totalMcq ? (dashData.totalMcqCorrect/dashData.totalMcq*100) : 0)}%</div>
+          <div class="dash-stat-lbl">🎯 Overall accuracy</div>
+        </div>
+        <div class="dash-stat-card accent-pink">
+          <div class="dash-stat-num">${dashData.totalMastered}/${dashData.totalCards}</div>
+          <div class="dash-stat-lbl">🗂️ Cards mastered</div>
+        </div>
+      </div>
+      <div class="dash-radar-wrap">
+        <h3 style="margin:0 0 8px;font-size:15px">📊 Chapter mastery radar</h3>
+        <p class="hint" style="margin:0 0 10px">Updates live as you answer MCQs and review flashcards. Aim for green across the board.</p>
+        <div id="radar-container">${radarChart(dashData.stats, 340)}</div>
+      </div>
+      ${dashData.weakChapters.length ? `
+      <div class="dash-weak-wrap">
+        <h3 style="margin:20px 0 8px;font-size:15px;color:var(--error)">⚠️ Chapters to revisit</h3>
+        ${dashData.weakChapters.map(c => `
+          <div class="dash-weak-item">
+            <div><b>${esc(c.label)}</b> — ${Math.round(c.mcqAcc*100)}% accuracy on ${c.mcqTotal} MCQs</div>
+            <button class="btn-ghost" onclick="(()=>{document.querySelector('.tab[data-tab=\\'plan\\']').click();})()">Review in plan →</button>
+          </div>`).join("")}
+      </div>` : `<div class="dash-weak-wrap"><p style="color:var(--success);font-weight:600">🌟 No weak chapters detected yet! Answer some MCQs to see your mastery.</p></div>`}
+    </div>` : `<p class="hint">Loading dashboard…</p>`;
+
   /* ---------- Flashcards ---------- */
   const cardsHtml = `
-    <p class="hint" style="margin-top:0">👆 Click any card to flip and reveal the answer. Formulas render beautifully!</p>
+    <p class="hint" style="margin-top:0">👆 Click any card to flip and reveal the answer. Formulas render beautifully! Rate cards 1-5 when reviewing in the 🔁 Review tab.</p>
     <div class="flashcard-grid">
-      ${(pkg.flashcards||[]).map(c => `
-        <div class="flashcard">
+      ${(pkg.flashcards||[]).map((c, idx) => `
+        <div class="flashcard" data-fc-idx="${idx}">
           <div class="flashcard-inner">
             <div class="flashcard-front">
               <span class="flashcard-tag">${esc(c.difficulty || "medium")}</span>
@@ -744,12 +787,31 @@ function renderResults(jobId, j) {
         </div>`).join("")}
     </div>`;
 
+  /* ---------- Spaced Repetition Review tab ---------- */
+  const reviewCards = (typeof getDueCards === "function") ? getDueCards(jobId) : [];
+  const reviewHtml = `
+    <div class="review-wrap">
+      <div class="review-header">
+        <h3 style="margin:0">🔁 Spaced-Repetition Review</h3>
+        <p class="hint" style="margin:4px 0 0">Based on the SM-2 algorithm (SuperMemo 2). Rate each card honestly after seeing the answer. Cards you forget come back tomorrow; easy ones return in days/weeks. This is how toppers build long-term memory.</p>
+      </div>
+      <div id="review-queue-info" class="review-queue-info">
+        ${reviewCards.length ? `🔔 <b>${reviewCards.length}</b> card${reviewCards.length===1?"":"s"} due today` : `🎉 <b>0</b> cards due — great job! Come back tomorrow, or click any card in the Flashcards tab to start practicing.`}
+      </div>
+      <div id="review-card-container"></div>
+      <div id="review-done-msg" style="display:none;text-align:center;padding:30px">
+        <div style="font-size:48px">🎉</div>
+        <h3>All cards reviewed for today!</h3>
+        <p style="color:var(--muted)">Come back tomorrow for more. Your memory is being optimized by spaced repetition.</p>
+      </div>
+    </div>`;
+
   /* ---------- MCQs ---------- */
   const mcqsHtml = `
-    <p class="hint" style="margin-top:0">Select an answer for each question, then click <b>Grade my answers</b> to see your score, explanations, and weak areas.</p>
+    <p class="hint" style="margin-top:0">Select an answer for each question, then click <b>Grade my answers</b> to see your score, explanations, and weak areas. Your accuracy per chapter feeds the 📈 Dashboard.</p>
     <div id="mcq-list">
       ${(pkg.mcqs||[]).map((q,i) => `
-        <div class="mcq" data-idx="${i}" data-correct="${esc(q.correct_answer)}">
+        <div class="mcq" data-idx="${i}" data-correct="${esc(q.correct_answer)}" data-chapter="${esc(q.chapter)}">
           <div class="mcq-q"><b>Q${i+1}.</b> ${q.question}
             <small>${esc(q.chapter)} · ${esc(q.difficulty)}</small>
           </div>
@@ -775,10 +837,12 @@ function renderResults(jobId, j) {
     </div>
     <div class="tabs">${tabsHtml}</div>
     <div class="tab-panel active" data-panel="overview">${overviewHtml}</div>
+    <div class="tab-panel" data-panel="dashboard">${dashboardHtml}</div>
     <div class="tab-panel" data-panel="plan">${planHeaderHtml}${planDaysHtml}</div>
     <div class="tab-panel" data-panel="resources">${resourcesHtml}</div>
     <div class="tab-panel" data-panel="notes">${notesHtml}</div>
     <div class="tab-panel" data-panel="flashcards">${cardsHtml}</div>
+    <div class="tab-panel" data-panel="review">${reviewHtml}</div>
     <div class="tab-panel" data-panel="mcqs">${mcqsHtml}</div>
   </div>`;
   resultsSection.classList.remove("hidden");
@@ -897,15 +961,22 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
       $$(".mcq", root).forEach(mcq => {
         const correct = mcq.dataset.correct;
         const picked  = answers[mcq.dataset.idx];
+        const chapter = mcq.dataset.chapter || "";
+        const isCorrect = picked === correct;
         mcq.classList.add("explained");
         $$(".mcq-option", mcq).forEach(o => {
           o.classList.add("locked");
           if (o.dataset.label === correct) o.classList.add("correct");
           if (o.dataset.label === picked && picked !== correct) o.classList.add("wrong");
         });
+        // Record per-chapter accuracy for dashboard
+        if (typeof recordMCQResult === "function" && chapter) {
+          recordMCQResult(jobId, chapter, isCorrect);
+        }
         // Re-render math in explanation
         renderMathIn(mcq.querySelector(".mcq-explanation"));
       });
+      refreshDashboard && refreshDashboard();
       const weakHtml = (r.weak_areas||[]).length
         ? `<h4 style="margin:12px 0 6px">📌 Areas to revisit:</h4>
            <ul class="weak-list">${r.weak_areas.map(w =>
@@ -931,6 +1002,90 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
     btn.disabled = false;
     btn.textContent = "📊 Grade my answers";
   });
+
+  /* Dashboard refresher — re-renders radar + stats after grading */
+  function refreshDashboard() {
+    if (typeof buildDashboardStats !== "function") return;
+    const d = buildDashboardStats(jobId, pkg);
+    const container = document.getElementById("radar-container");
+    if (container) container.innerHTML = radarChart(d.stats, 340);
+    renderMathIn(container);
+    // Re-render stats cards
+    document.querySelectorAll(".dash-stat-card").forEach((el, i) => {
+      const nums = [d.dueToday, `${d.totalMcqCorrect}/${d.totalMcq}`, `${Math.round(d.totalMcq ? (d.totalMcqCorrect/d.totalMcq*100) : 0)}%`, `${d.totalMastered}/${d.totalCards}`];
+      el.querySelector(".dash-stat-num").textContent = nums[i] || "0";
+    });
+  }
+
+  /* Spaced-repetition review flow */
+  let reviewQueue = (typeof getDueCards === "function") ? getDueCards(jobId) : [];
+  let reviewIdx = 0;
+  function showNextReviewCard() {
+    const container = document.getElementById("review-card-container");
+    const doneMsg = document.getElementById("review-done-msg");
+    const info = document.getElementById("review-queue-info");
+    if (!container) return;
+    if (reviewIdx >= reviewQueue.length) {
+      container.innerHTML = "";
+      if (doneMsg) doneMsg.style.display = "block";
+      if (info) info.innerHTML = `🎉 <b>All done!</b> Reviewed ${reviewQueue.length} card${reviewQueue.length===1?"":"s"}. Come back tomorrow for your next session.`;
+      fireConfetti(1600);
+      refreshDashboard();
+      return;
+    }
+    const card = reviewQueue[reviewIdx];
+    container.innerHTML = `
+      <div class="review-card">
+        <div class="review-progress">Card ${reviewIdx+1} of ${reviewQueue.length}</div>
+        <div class="review-chapter">${esc(card.chapter || "")}</div>
+        <div class="review-question" id="review-question">${card.front}</div>
+        <div class="review-answer-wrap" id="review-answer-wrap" style="display:none">
+          <div class="review-answer-divider"></div>
+          <div class="review-answer" id="review-answer">${card.back}</div>
+          <div class="review-rate-label">How well did you remember?</div>
+          <div class="review-rate-buttons">
+            <button class="rate-btn rate-1" data-rating="1" title="Total blackout">😖 Forgot</button>
+            <button class="rate-btn rate-2" data-rating="2" title="Wrong but familiar">😕 Hard</button>
+            <button class="rate-btn rate-3" data-rating="3" title="Correct with effort">🤔 Okay</button>
+            <button class="rate-btn rate-4" data-rating="4" title="Correct, some hesitation">🙂 Good</button>
+            <button class="rate-btn rate-5" data-rating="5" title="Perfect, instant recall">😎 Easy</button>
+          </div>
+        </div>
+        <button id="review-show-btn" class="btn-accent">👁️ Show answer</button>
+      </div>`;
+    renderMathIn(container);
+    const showBtn = document.getElementById("review-show-btn");
+    showBtn?.addEventListener("click", () => {
+      document.getElementById("review-answer-wrap").style.display = "block";
+      showBtn.style.display = "none";
+      renderMathIn(document.getElementById("review-answer-wrap"));
+    });
+    container.querySelectorAll(".rate-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const rating = parseInt(btn.dataset.rating);
+        const sr = loadSR(jobId);
+        const cardId = card.id;
+        if (sr[cardId]) applyRating(sr[cardId], rating);
+        saveSR(jobId, sr);
+        reviewIdx++;
+        showNextReviewCard();
+      });
+    });
+  }
+  // Start review on first open of the Review tab
+  const reviewPanel = root.querySelector('[data-panel="review"]');
+  if (reviewPanel) {
+    const reviewTab = root.querySelector('.tab[data-tab="review"]');
+    reviewTab?.addEventListener("click", () => {
+      reviewQueue = (typeof getDueCards === "function") ? getDueCards(jobId) : [];
+      reviewIdx = 0;
+      const doneMsg = document.getElementById("review-done-msg");
+      if (doneMsg) doneMsg.style.display = "none";
+      setTimeout(showNextReviewCard, 100);
+    });
+    // Auto-start if there are due cards and this is first render
+    // (don't auto-switch tabs; user opens it on their own)
+  }
 
   /* Tutor top button */
   $("#ask-tutor-top", root)?.addEventListener("click", () => {
