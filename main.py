@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="2.0.0")
+app = FastAPI(title="Exam Mitra 📚", version="2.1.0")
 
 # ---------- Security middleware ----------
 

@@ -177,21 +177,34 @@ def _strip_json(text: str) -> str:
     return text
 
 
-# Valid JSON string escape sequences per RFC 8259
-_VALID_JSON_ESCAPES = set('"\\/bfnrtu')
+# Valid JSON single-character escape sequences per RFC 8259.
+# IMPORTANT: We deliberately do NOT treat \b, \f, \n, \r, \t as "valid" here.
+# In this app the LLM outputs prose + LaTeX math. Those letters after a backslash
+# are almost always LaTeX commands (\frac, \Delta, \theta, \nu, \rho, \beta, \tau,
+# \text, \times, \nabla, \textbf...), never ASCII control characters. json.loads()
+# would otherwise silently convert \f → form-feed (␌, the "house" arrow you saw),
+# \t → tab, \n → newline, \r → CR, \b → backspace, which destroys the formula.
+# So we only treat backslash-quote, backslash-backslash, backslash-slash as real
+# JSON escapes that must be preserved; \uXXXX is handled specially below.
+_JSON_ESCAPES_KEEP_LITERAL = set('"\\/')
 
 
 def _fix_latex_backslashes(s: str) -> str:
-    """Repair invalid backslash escapes (e.g. unescaped LaTeX like \\frac, \\Delta)
-    by doubling them so they survive json.loads and render correctly through KaTeX
-    (which expects literal \\frac in the source string -> single backslash in parsed JS string).
+    """Repair invalid backslash escapes in LLM-produced JSON by doubling
+    backslashes that are clearly part of LaTeX commands rather than JSON
+    string escapes, so json.loads() sees them as literal backslashes.
 
-    Strategy: Walk the string looking for a backslash NOT inside a string? No, we are
-    already given the FULL raw JSON text including quotes. Simpler:
-    Find every backslash that is NOT followed by a valid JSON escape
-    (", \\, /, b, f, n, r, t, uXXXX) and double it. We do this by a state-machine pass
-    that respects JSON string boundaries so we don't mangle structural characters
-    outside of strings.
+    We do this with a state-machine pass that respects JSON string boundaries:
+      - Outside strings: pass characters through unchanged.
+      - Inside strings:
+          * \\"   -> keep as-is           (escaped quote)
+          * \\\\  -> keep as-is           (escaped backslash)
+          * \\/   -> keep as-is           (escaped slash, rare)
+          * \\uXXXX where XXXX is 4 hex digits -> keep as-is (unicode escape)
+          * \\<letter (a-z, A-Z)> -> double the backslash -> \\\\<letter>
+                                     so json.loads returns a single literal \\
+                                     that KaTeX can read.
+          * \\<anything else> -> keep as-is (unknown; don't corrupt it)
     """
     out = []
     i = 0
@@ -210,32 +223,40 @@ def _fix_latex_backslashes(s: str) -> str:
             continue
         # inside a JSON string
         if c == '\\':
-            # look at next char
-            if i + 1 < n:
-                nxt = s[i + 1]
-                if nxt in _VALID_JSON_ESCAPES:
-                    # valid JSON escape - emit as-is, but for 'u' we need to consume 4 hex digits too
-                    if nxt == 'u' and i + 5 < n:
-                        # verify 4 hex digits follow; if not, treat as invalid
-                        hex4 = s[i+2:i+6]
-                        if all(ch in '0123456789abcdefABCDEF' for ch in hex4):
-                            out.append(s[i:i+6])
-                            i += 6
-                            continue
-                    out.append(c)
-                    out.append(nxt)
-                    i += 2
-                    continue
-                # Invalid escape (e.g. \\f in \\frac, \\D in \\Delta).
-                # This is a bare backslash before a non-JSON-escape char (LaTeX).
-                # Double it so json.loads sees \\ -> literal backslash.
+            if i + 1 >= n:
+                # trailing backslash at end of string -> escape it
                 out.append('\\\\')
+                i += 1
+                continue
+            nxt = s[i + 1]
+            if nxt in _JSON_ESCAPES_KEEP_LITERAL:
+                # Valid JSON escape we preserve as-is: \\, \", \/
+                out.append(c)
                 out.append(nxt)
                 i += 2
                 continue
-            # backslash at very end of string - escape it
+            if nxt == 'u' and i + 5 < n:
+                hex4 = s[i+2:i+6]
+                if all(ch in '0123456789abcdefABCDEF' for ch in hex4):
+                    # Legitimate \uXXXX unicode escape -> preserve
+                    out.append(s[i:i+6])
+                    i += 6
+                    continue
+            # OTHERWISE: this is an unrecognized backslash sequence. In our
+            # context (LLM-generated LaTeX inside JSON strings) this is
+            # ALMOST CERTAINLY a LaTeX command that the LLM did not pre-escape:
+            #   - letter commands: \frac, \Delta, \theta, \vec, \text, \sin ...
+            #   - symbol escapes: \_, \%, \&, \$, \#, \{, \}, \, \; \! \:
+            #   - relations: \ge, \le, \to, \mapsto, \cdot, \times
+            #   - the "house arrow" bugs \b \f \n \r \t (\beta, \frac, \nu...)
+            # We must DOUBLE the backslash so json.loads() decodes it as a
+            # literal backslash (KaTeX needs that single \ to render).
+            # If we leave it as-is, Python json either raises Invalid \escape
+            # (for punctuation/symbols) or silently mangles it into a control
+            # character (\f -> form-feed U+000C, \n -> newline, \t -> tab, etc.).
             out.append('\\\\')
-            i += 1
+            out.append(nxt)
+            i += 2
             continue
         if c == '"':
             in_string = False

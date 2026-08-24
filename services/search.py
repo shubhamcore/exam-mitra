@@ -393,6 +393,94 @@ CURATED_RESOURCES = {
     "class 12": [
         {"title": "Class 12 Board Exam Preparation | Physics Wallah Lakshya", "url": "https://www.youtube.com/results?search_query=class+12+physics+wallah+lakshya+batch+board+exam", "platform": "youtube", "teacher": "Physics Wallah Lakshya", "why": "Complete Class 12 CBSE board prep + JEE/NEET."},
     ],
+    # ===================== COLLEGE / UNIVERSITY (BTech / BSc / MBBS / BCom / LLB) =====================
+    "engineering mathematics": [
+        {"title": "Engineering Mathematics | Neso Academy", "url": "https://www.youtube.com/results?search_query=engineering+mathematics+neso+academy+full+course", "platform": "youtube", "teacher": "Neso Academy", "why": "Linear algebra, calculus, differential equations, complex analysis — complete BTech math."},
+        {"title": "Engineering Maths | Gate Smashers", "url": "https://www.youtube.com/results?search_query=engineering+mathematics+gate+smashers+one+shot", "platform": "youtube", "teacher": "Gate Smashers", "why": "GATE-focused engineering maths with PYQs and short tricks."},
+        {"title": "Higher Engineering Mathematics | 5 Minutes Engineering", "url": "https://www.youtube.com/results?search_query=higher+engineering+mathematics+5+minutes+engineering", "platform": "youtube", "teacher": "5 Minutes Engineering", "why": "BTech semester-wise math lectures in simple Hindi/English."},
+    ],
+    "data structures": [
+        {"title": "Data Structures & Algorithms (DSA) | Gate Smashers", "url": "https://www.youtube.com/results?search_query=data+structures+algorithms+gate+smashers+full+course", "platform": "youtube", "teacher": "Gate Smashers", "why": "Complete DSA for BTech CSE/IT with C++/Java examples."},
+        {"title": "DSA Full Course | Neso Academy", "url": "https://www.youtube.com/results?search_query=data+structures+neso+academy+c+language", "platform": "youtube", "teacher": "Neso Academy", "why": "Arrays, linked lists, trees, graphs, sorting, searching — all DSA topics."},
+        {"title": "Data Structures | Knowledge Gate (Saurabh Shukla)", "url": "https://www.youtube.com/results?search_query=data+structures+knowledge+gate+saurabh+shukla", "platform": "youtube", "teacher": "Knowledge Gate (Saurabh Shukla)", "why": "Deep concept clarity on DSA in C/C++ — highly rated by BTech students."},
+        {"title": "Algorithms | Abdul Bari", "url": "https://www.youtube.com/results?search_query=abdul+bari+algorithms+full+course", "platform": "youtube", "teacher": "Abdul Bari", "why": "Legendary algorithm lectures — recursion, DP, greedy, graph algorithms."},
+    ],
+    "dsa": [
+        {"title": "DSA Complete | CodeWithHarry", "url": "https://www.youtube.com/results?search_query=data+structures+algorithms+codewithharry", "platform": "youtube", "teacher": "CodeWithHarry", "why": "Hindi DSA course with Python/C++ for beginners."},
+        {"title": "DSA GATE | Gate Smashers", "url": "https://www.youtube.com/results?search_query=gate+smashers+data+structures+full+playlist", "platform": "youtube", "teacher": "Gate Smashers", "why": "GATE/University exam oriented DSA."},
+    ],
+    "digital electronics": [
+        {"title": "Digital Electronics | Neso Academy", "url": "https://www.youtube.com/results?search_query=digital+electronics+neso+academy+full+course", "platform": "youtube", "teacher": "Neso Academy", "why": "Boolean algebra, logic gates, flip-flops, counters, ADC/DAC — BTech ECE/EE/CSE."},
+        {"title": "Digital Logic | Gate Smashers", "url": "https://www.youtube.com/results?search_query=digital+logic+design+gate+smashers", "platform": "youtube", "teacher": "Gate Smashers", "why": "GATE-oriented digital electronics with K-maps and sequential circuits."},
+    ],
+    "signals systems": [
+        {"title": "Signals and Systems | Neso Academy", "url": "https://www.youtube.com/results?search_query=signals+and+systems+neso+academy", "platform": "youtube", "teacher": "Neso Academy", "why": "Fourier, Laplace, Z-transform, convolution for BTech ECE/EE."},
+        {"title": "Signals & Systems | Gate Smashers", "url": "https://www.youtube.com/results?search_query=signals+systems+gate+smashers+one+shot", "platform": "youtube", "teacher": "Gate Smashers", "why": "GATE/University exam signal & systems revision."},
+    ],
+    "operating system": [
+        {"title": "Operating Systems | Gate Smashers", "url": "https://www.youtube.com/results?search_query=operating+systems+gate+smashers+full+course", "platform": "youtube", "teacher": "Gate Smashers", "why": "Processes, threads, scheduling, memory management, deadlocks, file systems."},
+        {"title": "OS | Knowledge Gate (Saurabh Shukla)", "url": "https://www.youtube.com/results?search_query=operating+system+knowledge+gate+saurabh+shukla", "platform": "youtube", "teacher": "Knowledge Gate", "why": "Detailed OS concepts for BTech and GATE."},
+    ],
+    "dbms": [
+        {"title": "DBMS | Gate Smashers", "url": "https://www.youtube.com/results?search_query=dbms+gate+smashers+full+course", "platform": "youtube", "teacher": "Gate Smashers", "why": "ER model, normalization, SQL, transactions, concurrency control."},
+        {"title": "Database Management | Neso Academy", "url": "https://www.youtube.com/results?search_query=dbms+neso+academy+full+playlist", "platform": "youtube", "teacher": "Neso Academy", "why": "Complete DBMS for BTech CSE/IT."},
+        {"title": "DBMS | Knowledge Gate", "url": "https://www.youtube.com/results?search_query=dbms+knowledge+gate+saurabh+shukla", "platform": "youtube", "teacher": "Knowledge Gate", "why": "Normalization, SQL, transactions in depth."},
+    ],
+    "computer networks": [
+        {"title": "Computer Networks | Gate Smashers", "url": "https://www.youtube.com/results?search_query=computer+networks+gate+smashers+full+course", "platform": "youtube", "teacher": "Gate Smashers", "why": "OSI/TCP model, routing, IP addressing, transport layer — BTech/GATE."},
+        {"title": "CN | Neso Academy", "url": "https://www.youtube.com/results?search_query=computer+networks+neso+academy", "platform": "youtube", "teacher": "Neso Academy", "why": "Layer-by-layer networking with clear diagrams."},
+    ],
+    "basic electrical engineering": [
+        {"title": "Basic Electrical Engineering | Neso Academy", "url": "https://www.youtube.com/results?search_query=basic+electrical+engineering+neso+academy", "platform": "youtube", "teacher": "Neso Academy", "why": "KVL, KCL, AC/DC circuits, transformers, machines — BTech 1st year."},
+        {"title": "BEE | 5 Minutes Engineering", "url": "https://www.youtube.com/results?search_query=basic+electrical+engineering+5+minutes+engineering", "platform": "youtube", "teacher": "5 Minutes Engineering", "why": "Hindi/English BTech 1st year electrical lectures."},
+        {"title": "Electrical Engineering | Saurabh Shukla (Knowledge Gate)", "url": "https://www.youtube.com/results?search_query=basic+electrical+engineering+knowledge+gate+sir", "platform": "youtube", "teacher": "Knowledge Gate", "why": "Network theory, circuits, machines for BTech first year."},
+    ],
+    "engineering physics": [
+        {"title": "Engineering Physics | Neso Academy", "url": "https://www.youtube.com/results?search_query=engineering+physics+neso+academy+quantum+mechanics", "platform": "youtube", "teacher": "Neso Academy", "why": "Quantum mechanics, solid state physics, optics for BTech 1st year."},
+        {"title": "BTech Physics | 5 Minutes Engineering", "url": "https://www.youtube.com/results?search_query=engineering+physics+5+minutes+engineering+btch", "platform": "youtube", "teacher": "5 Minutes Engineering", "why": "Semester-wise BTech applied physics."},
+    ],
+    "bsc physics": [
+        {"title": "BSc Physics | Physics Wallah Degree", "url": "https://www.youtube.com/results?search_query=bsc+physics+physics+wallah+degree+one+shot", "platform": "youtube", "teacher": "Physics Wallah (Degree)", "why": "Mechanics, thermodynamics, optics, electromagnetism for BSc."},
+        {"title": "Physics Honours | Neso Academy", "url": "https://www.youtube.com/results?search_query=bsc+physics+honours+neso+academy+classical+mechanics", "platform": "youtube", "teacher": "Neso Academy", "why": "University-level physics lectures."},
+    ],
+    "mbbs anatomy": [
+        {"title": "MBBS Anatomy | Rajesh Kaushal (PW MedEd)", "url": "https://www.youtube.com/results?search_query=mbbs+anatomy+rajesh+kaushal+pw+meded", "platform": "youtube", "teacher": "Rajesh Kaushal (PW MedEd)", "why": "Gross anatomy, neuroanatomy, embryology for MBBS 1st year."},
+        {"title": "Anatomy | Dr. Najeeb Lectures", "url": "https://www.youtube.com/results?search_query=dr+najeeb+anatomy+lectures+mbbs", "platform": "youtube", "teacher": "Dr. Najeeb", "why": "World-famous medical lectures with hand-drawn diagrams."},
+        {"title": "MBBS 1st Year | Physics Wallah MedEd", "url": "https://www.youtube.com/results?search_query=mbbs+first+year+physics+wallah+meded+lectures", "platform": "youtube", "teacher": "PW MedEd", "why": "Anatomy, Physiology, Biochemistry for MBBS Phase I."},
+    ],
+    "mbbs physiology": [
+        {"title": "Physiology | Dr. Najeeb", "url": "https://www.youtube.com/results?search_query=dr+najeeb+physiology+mbbs+lectures", "platform": "youtube", "teacher": "Dr. Najeeb", "why": "Cardiovascular, respiratory, renal, neuro physiology explained in depth."},
+        {"title": "MBBS Physiology | PW MedEd", "url": "https://www.youtube.com/results?search_query=physiology+mbbs+pw+meded+one+shot", "platform": "youtube", "teacher": "PW MedEd", "why": "MBBS-focused physiology with clinical correlations."},
+    ],
+    "mbbs biochemistry": [
+        {"title": "Biochemistry | Dr. Najeeb", "url": "https://www.youtube.com/results?search_query=dr+najeeb+biochemistry+metabolism", "platform": "youtube", "teacher": "Dr. Najeeb", "why": "Metabolism cycles, enzymes, molecular biology for MBBS."},
+        {"title": "Biochemistry MBBS | PW MedEd", "url": "https://www.youtube.com/results?search_query=biochemistry+mbbs+pw+meded+lecture", "platform": "youtube", "teacher": "PW MedEd", "why": "MBBS-oriented biochemistry with clinical cases."},
+    ],
+    "accounting": [
+        {"title": "Financial Accounting | Rajat Arora (BA BCom)", "url": "https://www.youtube.com/results?search_query=financial+accounting+rajat+arora+bcom+lectures", "platform": "youtube", "teacher": "Rajat Arora", "why": "Journal entries, ledger, trial balance, final accounts for BCom/BBA."},
+        {"title": "Accounting for BCom | CA Wallah (PW)", "url": "https://www.youtube.com/results?search_query=ca+wallah+physics+wallah+accounts+bcom", "platform": "youtube", "teacher": "CA Wallah (PW)", "why": "BCom/MCom accounts, cost accounting, financial management."},
+        {"title": "Class 11-12 / BCom Accounts | Magnet Brains", "url": "https://www.youtube.com/results?search_query=accounts+magnet+brains+bcom+class+11", "platform": "youtube", "teacher": "Magnet Brains", "why": "Complete accounting from basics to BCom level in Hindi."},
+    ],
+    "business law": [
+        {"title": "Business Law / Company Law | Law Wallah (PW)", "url": "https://www.youtube.com/results?search_query=business+law+law+wallah+physics+wallah+bcom", "platform": "youtube", "teacher": "Law Wallah (PW)", "why": "Indian Contract Act, Companies Act, Sale of Goods Act for BCom/BBALLB."},
+        {"title": "Law Lectures | Legal Bites / NLSIU", "url": "https://www.youtube.com/results?search_query=indian+contract+act+legal+bites+lectures", "platform": "youtube", "teacher": "Legal Bites Academy", "why": "Comprehensive law lectures for LLB/ judiciary aspirants."},
+    ],
+    "law of torts": [
+        {"title": "Law of Torts | Law Wallah (PW)", "url": "https://www.youtube.com/results?search_query=law+of+torts+law+wallah+anand+sir", "platform": "youtube", "teacher": "Law Wallah (PW)", "why": "Tort law, negligence, nuisance, defamation for LLB."},
+        {"title": "Jurisprudence & Torts | Legal Bites", "url": "https://www.youtube.com/results?search_query=law+of+torts+legal+bites+full+lecture", "platform": "youtube", "teacher": "Legal Bites Academy", "why": "LLB-focused tort law with case examples."},
+    ],
+    "constitutional law": [
+        {"title": "Constitutional Law of India | Law Wallah (PW)", "url": "https://www.youtube.com/results?search_query=constitutional+law+india+law+wallah+ba+llb", "platform": "youtube", "teacher": "Law Wallah (PW)", "why": "Indian Constitution, fundamental rights, directive principles for LLB."},
+        {"title": "Constitution | Finology Legal", "url": "https://www.youtube.com/results?search_query=constitutional+law+india+finology+legal+llb", "platform": "youtube", "teacher": "Finology Legal", "why": "Simplified constitutional law with landmark judgments."},
+    ],
+    "microeconomics": [
+        {"title": "Microeconomics | Rajat Arora / Economics Wallah", "url": "https://www.youtube.com/results?search_query=microeconomics+one+shot+rajat+arora+bcom", "platform": "youtube", "teacher": "Rajat Arora", "why": "Demand, supply, consumer behavior, market structures for BCom/BA."},
+        {"title": "Economics | Khan Academy India", "url": "https://www.khanacademy.org/economics-finance-domain", "platform": "khanacademy", "teacher": "Khan Academy", "why": "Free, world-class micro & macro economics lessons."},
+    ],
+    "thermodynamics engineering": [
+        {"title": "Engineering Thermodynamics | Neso Academy", "url": "https://www.youtube.com/results?search_query=engineering+thermodynamics+neso+academy", "platform": "youtube", "teacher": "Neso Academy", "why": "Laws, cycles, entropy, availability for BTech ME/CH."},
+        {"title": "Thermodynamics | 5 Minutes Engineering", "url": "https://www.youtube.com/results?search_query=thermodynamics+engineering+5+minutes+engineering", "platform": "youtube", "teacher": "5 Minutes Engineering", "why": "Simple Hindi/English lectures on thermo cycles (Rankine, Otto, Diesel)."},
+    ],
 }
 
 
