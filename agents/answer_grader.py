@@ -60,8 +60,15 @@ def grade_answers(
         )
     answer_lines = [f"Q{idx}: {answers.get(str(idx), '(skipped)')}" for idx in range(len(state.mcqs))]
 
+    lang_instruction = {
+        "hi": "LANGUAGE = hi (हिन्दी). The encouragement message AND every feedback string MUST be in PURE DEVANAGARI HINDI. Example: 'शानदार प्रयास! वेग और त्वरण के बीच का भ्रम सामान्य है — दोबारा अभ्यास करें।'",
+        "hinglish": "LANGUAGE = hinglish. Encouragement and feedback MUST be in conversational Roman-script Hinglish. Example: 'Bohot badhiya! Bas velocity aur acceleration ke sign convention mein dhyan do.'",
+        "en": "LANGUAGE = en. Write encouragement and feedback in English.",
+    }.get((state.language or "en").lower(), "LANGUAGE = en. Write in English.")
+
     prompt = (
-        f"Exam: {state.exam}\nLanguage: {state.language}\n\n"
+        f"Exam: {state.exam}\n"
+        f"{lang_instruction}\n\n"
         f"Questions & correct answers:\n" + "\n\n".join(mcq_lines) + "\n\n"
         f"Student's answers:\n" + "\n".join(answer_lines) + "\n\n"
         f"Return the GradeResult JSON."

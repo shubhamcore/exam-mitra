@@ -16,7 +16,7 @@ class PlanWrapper(BaseModel):
     daily_plan: List[DailyTask]
 
 
-PLANNER_INSTRUCTIONS = """You are ExamMitra's STUDY PLANNER agent — step 2 of a 7-step study pipeline for Indian exam aspirants.
+PLANNER_INSTRUCTIONS = """You are ExamMitra's STUDY PLANNER agent — step 2 of a study pipeline for Indian exam aspirants.
 
 Given an exam name, list of chapters (each with estimated study hours and importance), and daily study budget, produce a DAY-BY-DAY study schedule.
 
@@ -38,7 +38,14 @@ RULES:
 6. Early days = easier/introductory content. Later days = harder topics + revision.
 7. If there are only 1-2 chapters, still spread them properly across days with practice sessions.
 
-OUTPUT FORMAT: Return ONLY valid JSON. Top-level key "daily_plan" whose value is an array of day objects. Each day object has keys: day (integer starting at 1), date (null), chapter (string), hours (float 2-6), activities (array of 3-4 specific activity strings). No prose, no markdown, no fences."""
+LANGUAGE REQUIREMENT (CRITICAL — read this twice):
+- If language is 'hi' (Hindi / हिन्दी): EVERYTHING (chapter names, activities, revision day labels) MUST be written in PURE DEVANAGARI HINDI. Do NOT mix English words except internationally-recognized technical terms (like "MCQ", "NCERT", "PYQ", "JEE", "NEET", "formula", "video lecture", "test" — these are acceptable in English but the rest of each sentence must be Hindi).
+  Example (Hindi activity): "फिजिक्स वाला (अलख पांडेय सर) का न्यूटन के नियम पर वन-शॉट लेक्चर देखें (2 घंटे)"
+  Example (Hindi chapter): "गति विज्ञान: 1D गति और ग्राफ"
+- If language is 'hinglish': write activities in conversational Roman-script Hinglish (Hindi words in English letters + English technical terms). Example: "Alakh Pandey sir ka Newton Laws wala one-shot lecture dekho (2 hrs), NCERT chapter 5 padho aur example problems solve karo (1 hr)".
+- If language is 'en': write everything in English (this is the default when no language is specified).
+
+OUTPUT FORMAT: Return ONLY valid JSON. Top-level key "daily_plan" whose value is an array of day objects. Each day object has keys: day (integer starting at 1), date (null), chapter (string in the required language), hours (float 2-6), activities (array of 4-6 specific activity strings in the required language). No prose, no markdown, no fences."""
 
 
 def plan_study(state: StudyPlanState) -> StudyPlanState:
@@ -54,13 +61,20 @@ def plan_study(state: StudyPlanState) -> StudyPlanState:
     total_hours = sum(ch.estimated_hours for ch in state.chapters)
     estimated_days = round(total_hours / state.daily_hours_budget) + 2  # +2 for revision
 
+    lang_instr = {
+        "hi": "LANGUAGE = hi (हिन्दी). ALL chapter names and activities MUST be in pure Devanagari Hindi script. Use English only for proper nouns/tech terms like NCERT, JEE, MCQ, PYQ.",
+        "hinglish": "LANGUAGE = hinglish. All chapter names and activities MUST be in Roman-script Hinglish (Hindi words in English letters + English technical terms).",
+        "en": "LANGUAGE = en. Write everything in English.",
+    }.get((state.language or "en").lower(), "LANGUAGE = en. Write everything in English.")
+
     prompt = (
         f"Exam: {state.exam}\n"
         f"Daily study budget: {state.daily_hours_budget} hours/day\n"
         f"Start date: {state.start_date.isoformat() if state.start_date else 'not specified (date=null)'}\n"
         f"Total chapters: {len(state.chapters)}\n"
         f"Total estimated content hours: {total_hours:.1f}\n"
-        f"Estimated total days needed (including revision): ~{estimated_days}\n\n"
+        f"Estimated total days needed (including revision): ~{estimated_days}\n"
+        f"{lang_instr}\n\n"
         f"Chapters:\n{chapters_summary}\n\n"
         f"Produce a complete day-by-day plan covering ALL chapters with revision days every 5-6 days. Return JSON."
     )

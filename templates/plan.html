@@ -44,8 +44,10 @@
   }
   .share-cta.ghost:hover { background: rgba(255,255,255,.2); text-decoration:none; color:#fff; }
 
-  .day-body { cursor: pointer; }
-  .day-body h4 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .day-body { cursor: pointer; flex: 1; min-width: 0; overflow-wrap: break-word; word-wrap: break-word; }
+  .day-body h4 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: break-word; word-wrap: break-word; line-height: 1.4; }
+  .day-body ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; white-space: normal; }
+  .day-body li { margin: 3px 0; color: #374151; line-height: 1.55; white-space: normal; word-break: normal; overflow-wrap: break-word; word-wrap: break-word; hyphens: auto; }
   .expand-icon { font-size: 10px; color: var(--muted); transition: transform .2s; margin-left: auto; }
   .day-row.expanded .expand-icon { transform: rotate(180deg); }
   .day-details { max-height: 0; overflow: hidden; transition: max-height .35s ease; margin-left: 66px; }

@@ -963,7 +963,7 @@ input::placeholder, textarea::placeholder { color: var(--muted-2); }
   box-shadow: 0 4px 12px rgba(99,102,241,.3);
 }
 .day-badge small { font-size: 10px; font-weight: 600; display: block; opacity: .85; }
-.day-body { flex: 1; min-width: 0; cursor: pointer; }
+.day-body { flex: 1; min-width: 0; cursor: pointer; overflow-wrap: break-word; word-wrap: break-word; }
 .day-body h4 {
   margin: 0 0 4px;
   font-size: 15px;
@@ -971,11 +971,28 @@ input::placeholder, textarea::placeholder { color: var(--muted-2); }
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  line-height: 1.4;
 }
 .hours { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
 .hours::before { content: '⏱ '; }
-.day-body ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; }
-.day-body li { margin: 2px 0; color: var(--text-2); }
+.day-body ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  white-space: normal;
+}
+.day-body li {
+  margin: 3px 0;
+  color: var(--text-2);
+  line-height: 1.55;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
 
 /* Resource cards */
 .resource-card {

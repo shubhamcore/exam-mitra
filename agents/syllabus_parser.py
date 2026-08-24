@@ -16,7 +16,7 @@ class ChaptersWrapper(BaseModel):
     chapters: List[Chapter]
 
 
-SYLLABUS_PARSER_INSTRUCTIONS = """You are ExamMitra's SYLLABUS PARSER — step 1 of a 7-step autonomous study planner for ALL Indian competitive exams including: JEE Mains/Advanced, NEET UG, UPSC CSE (IAS/IPS/IFS), SSC CGL/CHSL/CPO/MTS, Banking (IBPS PO/SBI PO/RRB Clerk), Railway (RRB NTPC/Group D), GATE, NDA, CDS, CAT, CUET, State PSCs (BPSC, UPPSC, MPSC, RAS), CBSE Class 10/12, ISC, ICSE, Hindi-medium exams (Bihar Board, UP Board, MP Board), and school exams.
+SYLLABUS_PARSER_INSTRUCTIONS = """You are ExamMitra's SYLLABUS PARSER — step 1 of a 9-step autonomous study planner for ALL Indian exams including: JEE Mains/Advanced, NEET UG, UPSC CSE, SSC, Banking, Railway, GATE, NDA/CDS, CTET, CAT/CUET, State PSCs (BPSC/UPPSC/MPSC/RAS), CBSE/ICSE Class 10/12, BSEB (Bihar Board), UP Board, and COLLEGE/UNIVERSITY exams (BTech/BSc/MBBS/BCom/LLB).
 
 YOUR JOB: Take the student's raw exam name and syllabus text (could be a single topic like "Kinematics" or a full 50-topic syllabus) and break it into LOGICAL study chapters/units.
 
@@ -29,21 +29,31 @@ CRITICAL RULES:
    - A medium unit like "Kinematics (1D+2D)" = 6-10 hours
    - A large unit like "Electromagnetism" = 15-25 hours
    - A full exam topic list = 50-200 hours total
-5. Rate importance (high/medium/low) based on actual weightage in the specified exam (research your knowledge of JEE/NEET/UPSC PYQ patterns). For example, in JEE Mains Physics, Mechanics and Modern Physics are high, Units & Dimensions is low.
+5. Rate importance (high/medium/low) based on actual weightage in the specified exam (research your knowledge of JEE/NEET/UPSC PYQ patterns).
 6. Description should be 2 specific sentences: what the chapter covers, and why it matters for the exam.
 7. Chapter title must be a clear, standard name used in Indian textbooks/coaching (e.g. "Motion in a Straight Line (Kinematics 1D)", NOT "Chapter 1: Motion").
 
-OUTPUT FORMAT: Return ONLY valid JSON. Top-level key "chapters" whose value is an array of chapter objects. Each chapter object has keys: number (integer), title (string), description (string), estimated_hours (float), importance (one of "high", "medium", "low"). No prose, no markdown fences, no explanations outside JSON."""
+LANGUAGE (CRITICAL):
+- If language = 'hi' (Hindi): Write ALL chapter titles AND descriptions in PURE DEVANAGARI HINDI (हिन्दी). Use internationally-known technical words/abbreviations in English (e.g., MCQ, JEE, NCERT, formula, Newton, DNA) but every other word must be Hindi script.
+- If language = 'hinglish': Write titles and descriptions in conversational Roman-script Hinglish.
+- If language = 'en': Write everything in English (default).
+
+OUTPUT FORMAT: Return ONLY valid JSON. Top-level key "chapters" whose value is an array of chapter objects. Each chapter object has keys: number (integer), title (string in the required language), description (string in the required language), estimated_hours (float), importance (one of "high", "medium", "low"). No prose, no markdown fences, no explanations outside JSON."""
 
 
 def parse_syllabus(state: StudyPlanState) -> StudyPlanState:
     """Parse raw syllabus text into structured Chapter objects."""
     logger.info(f"[1/7] Parsing syllabus for exam='{state.exam}' (input={len(state.syllabus_text)} chars)")
     agent = make_agent("syllabus_parser", SYLLABUS_PARSER_INSTRUCTIONS)
+    lang_instruction = {
+        "hi": "LANGUAGE = hi (हिन्दी). Write ALL chapter titles and descriptions in pure Devanagari Hindi script. Example title: 'गति विज्ञान (1D एवं 2D)'. English allowed only for proper nouns / abbreviations (NCERT, JEE, Newton, DNA).",
+        "hinglish": "LANGUAGE = hinglish. Write chapter titles and descriptions in conversational Roman-script Hinglish. Example: 'Kinematics (1D aur 2D Motion)'.",
+        "en": "LANGUAGE = en. Write everything in English.",
+    }.get((state.language or "en").lower(), "LANGUAGE = en. Write in English.")
     prompt = (
         f"Exam: {state.exam}\n"
         f"Daily study budget: {state.daily_hours_budget} hours/day\n"
-        f"Language: {state.language}\n\n"
+        f"{lang_instruction}\n\n"
         f"Raw syllabus/topics from the student:\n---\n{state.syllabus_text}\n---\n\n"
         f"Parse into appropriate chapters following the rules. Return JSON."
     )
