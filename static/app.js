@@ -465,8 +465,14 @@ function renderResults(jobId, j) {
     <div class="action-row">
       <button id="copy-link" class="btn-accent">🔗 Copy shareable link</button>
       <a href="${planUrl}"  target="_blank" rel="noopener" class="btn-ghost">📖 Open share page</a>
-      <button id="open-share" class="btn-ghost" style="display:none"></button>
       <a href="${printUrl}" target="_blank" rel="noopener" class="btn-ghost">📄 Download / Print PDF</a>
+      <a href="https://wa.me/?text=${encodeURIComponent('📚 I made my personalized study plan on Exam Mitra for ' + pkg.exam + ' — check it out: ' + planUrl)}" target="_blank" rel="noopener" class="btn-ghost wa-btn">💬 Share on WhatsApp</a>
+    </div>
+    <div id="streak-bar" class="streak-bar"></div>
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <div id="pomo-widget" class="pomo-widget"></div>
+      <button id="ask-tutor-top" class="btn-ghost" style="padding:8px 14px;">🤖 Ask AI Tutor about this plan</button>
+      <span class="kbd-hint" title="Keyboard shortcuts">press <b>?</b> for shortcuts</span>
     </div>
     <div class="exam-pill">📘 ${esc(pkg.exam)}</div>
     <div class="progress-block" style="margin-top:14px">
@@ -667,6 +673,7 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
   });
 
   /* Day checkboxes */
+  let prevDone = [...completed].length;
   const updateProgress = () => {
     const done = $$(".day-checkbox:checked", root).length;
     const pct = Math.round(done / totalDays * 100);
@@ -679,6 +686,13 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
       cb.checked ? completed.add(cb.dataset.day) : completed.delete(cb.dataset.day);
     });
     localStorage.setItem(PROGRESS_KEY, JSON.stringify([...completed]));
+    // Celebrate when a new day is checked off
+    if (done > prevDone) {
+      bumpStreak("task");
+      if (done === totalDays) { fireConfetti(2600); toast("🎉 All days complete! You're on fire — take a screenshot and share with friends!"); }
+      else fireConfetti(700);
+    }
+    prevDone = done;
   };
   $$(".day-checkbox", root).forEach(cb => cb.addEventListener("change", updateProgress));
 
@@ -744,16 +758,521 @@ function wireUpResultInteractions(jobId, pkg, PROGRESS_KEY, completed, totalDays
           ${weakHtml}
         </div>`;
       renderMathIn($("#grade-result", root));
+      // Adaptive remediation: offer booster pack if there are weak areas
+      if (r.weak_areas && r.weak_areas.length) {
+        requestRemediation(jobId, r.score, r.total, r.weak_areas, root);
+      } else if (r.percentage === 100) {
+        fireConfetti(2200);
+      }
     } catch(e) {
       toast("Grading error: " + e.message);
     }
     btn.disabled = false;
     btn.textContent = "📊 Grade my answers";
   });
+
+  /* Tutor top button */
+  $("#ask-tutor-top", root)?.addEventListener("click", () => {
+    const firstChapter = (pkg.notes && pkg.notes[0]) ? pkg.notes[0].chapter : "";
+    ensureTutorDOMElements();
+    openTutor(jobId, firstChapter);
+  });
+
+  /* Pomodoro */
+  renderPomo();
+
+  /* Streak */
+  bumpStreak("plan");
+  renderStreak();
+
+  /* Confetti celebration on first render */
+  setTimeout(() => fireConfetti(1400), 400);
+
+  /* Add voice buttons next to formulas? Keep simple: add speaker to key concepts */
+  $$(".note-section h4, .formula-item", root).forEach(el => {
+    if (el.querySelector(".speak-btn")) return;
+    const b = document.createElement("button");
+    b.className = "speak-btn";
+    b.innerHTML = "🔊";
+    b.title = "Read this aloud";
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); speakText(el.innerText.replace(/🔊/g,"")); });
+    el.appendChild(b);
+  });
 }
+
+/* Lazily inject the floating Tutor FAB + panel once per page load */
+let tutorDOMElementsInjected = false;
+function ensureTutorDOMElements() {
+  if (tutorDOMElementsInjected) return;
+  tutorDOMElementsInjected = true;
+  const fab = document.createElement("button");
+  fab.className = "tutor-fab pulse";
+  fab.id = "tutor-fab";
+  fab.title = "Ask AI Tutor (T)";
+  fab.innerHTML = "🤖";
+  fab.addEventListener("click", () => {
+    if (!tutorJobId) { toast("Generate a plan first, then I can tutor you on it!"); return; }
+    openTutor(tutorJobId, tutorChapter);
+  });
+  document.body.appendChild(fab);
+
+  const panel = document.createElement("div");
+  panel.className = "tutor-panel";
+  panel.id = "tutor-panel";
+  panel.innerHTML = `
+    <div class="tutor-head">
+      <div>
+        <h3>🤖 Your Exam Mitra Tutor</h3>
+        <small>Ask me anything about your plan — I explain in your language with formulas.</small>
+      </div>
+      <button class="tutor-close" onclick="closeTutor()">✕</button>
+    </div>
+    <div class="tutor-body"></div>
+    <div class="tutor-quick"></div>
+    <div class="tutor-input-row">
+      <input id="tutor-input" class="tutor-input" placeholder="Ask a doubt, e.g. Why does projectile range use sin 2θ?" />
+      <button class="tutor-send" onclick="sendTutor()">Send</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  const input = panel.querySelector("#tutor-input");
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendTutor(); });
+}
+
+/* ===============================================================
+   Exam Mitra v2.2 — Adaptive Tutor / Pomodoro / Streak / Confetti
+   =============================================================== */
+
+/* ---------- Streak (localStorage) ---------- */
+function getStreak() {
+  const d = JSON.parse(localStorage.getItem("em_streak") || "{}");
+  return { days: d.days || 0, last: d.last || null, totalTasks: d.totalTasks || 0, plans: d.plans || 0 };
+}
+function bumpStreak(kind /* "task" | "plan" */) {
+  const s = getStreak();
+  const today = new Date().toISOString().slice(0,10);
+  if (kind === "plan") s.plans = (s.plans || 0) + 1;
+  if (kind === "task") {
+    s.totalTasks++;
+    if (s.last === today) { /* already counted */ }
+    else {
+      const yest = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+      s.days = (s.last === yest) ? s.days + 1 : 1;
+      s.last = today;
+    }
+  }
+  localStorage.setItem("em_streak", JSON.stringify(s));
+  renderStreak();
+}
+function renderStreak() {
+  const s = getStreak();
+  const el = document.getElementById("streak-bar");
+  if (!el) return;
+  el.innerHTML = `
+    <span class="streak-badge">🔥 ${s.days} day${s.days===1?"":"s"}</span>
+    <span class="streak-meta"><b>${s.plans}</b> plan${s.plans===1?"":"s"} created · <b>${s.totalTasks||0}</b> day${(s.totalTasks||0)===1?"":"s"} marked done</span>
+  `;
+}
+
+/* ---------- Confetti (pure JS, zero deps) ---------- */
+function fireConfetti(duration = 1800) {
+  let canvas = document.getElementById("confetti-canvas");
+  if (canvas) canvas.remove();
+  canvas = document.createElement("canvas");
+  canvas.id = "confetti-canvas";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const colors = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#06b6d4","#ef4444","#84cc16"];
+  const pieces = [];
+  for (let i=0;i<140;i++) pieces.push({
+    x: Math.random()*canvas.width,
+    y: -20 - Math.random()*200,
+    r: 4+Math.random()*5,
+    vx: (Math.random()-.5)*4,
+    vy: 2+Math.random()*3,
+    c: colors[Math.floor(Math.random()*colors.length)],
+    tilt: Math.random()*Math.PI,
+    spin: (Math.random()-.5)*.25,
+  });
+  const start = performance.now();
+  function frame(t) {
+    const elapsed = t - start;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += .08; p.tilt += p.spin;
+      ctx.save();
+      ctx.translate(p.x,p.y); ctx.rotate(p.tilt);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);
+      ctx.restore();
+    });
+    if (elapsed < duration && pieces.some(p => p.y < canvas.height+20)) {
+      requestAnimationFrame(frame);
+    } else { canvas.remove(); }
+  }
+  requestAnimationFrame(frame);
+}
+window.addEventListener("resize", () => {
+  const c = document.getElementById("confetti-canvas");
+  if (c) { c.width = window.innerWidth; c.height = window.innerHeight; }
+});
+
+/* ---------- Pomodoro timer ---------- */
+const POMO = {
+  focus: 25*60, short: 5*60, long: 15*60,
+  remaining: 25*60, mode: "focus", interval: null, cycles: 0,
+};
+function fmtTime(s) {
+  const m = Math.floor(s/60), sec = s%60;
+  return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+}
+function renderPomo() {
+  const el = document.getElementById("pomo-widget");
+  if (!el) return;
+  el.classList.toggle("running", !!POMO.interval && POMO.mode==="focus");
+  el.classList.toggle("break", POMO.mode!=="focus");
+  el.innerHTML = `
+    <div>
+      <div class="pomo-mode">${POMO.mode==="focus"?"🎯 Focus":"☕ Break"} · cycle ${POMO.cycles+1}</div>
+      <div class="pomo-display">${fmtTime(POMO.remaining)}</div>
+    </div>
+    <button id="pomo-toggle">${POMO.interval?"Pause":"Start"}</button>
+    <button id="pomo-reset" title="Reset">↺</button>
+  `;
+  document.getElementById("pomo-toggle")?.addEventListener("click", togglePomo);
+  document.getElementById("pomo-reset")?.addEventListener("click", resetPomo);
+}
+function togglePomo() {
+  if (POMO.interval) { clearInterval(POMO.interval); POMO.interval = null; renderPomo(); return; }
+  POMO.interval = setInterval(() => {
+    POMO.remaining--;
+    if (POMO.remaining <= 0) {
+      clearInterval(POMO.interval); POMO.interval = null;
+      const nextMode = POMO.mode === "focus" ? (++POMO.cycles%4===0 ? "long" : "short") : "focus";
+      try {
+        new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbsGM2on1/f39/f39/f39/f39/f39/f4CHi5SVmJCQk5WVn6ChpKWnp7e7ur6+vsPHx9/c4erk6uvp6+zt7e7s7Onp6OTj5efl5+bp7Ozs7e7u7+/v8PX19/b4+vr6+fr7/P3+/w==").play().catch(()=>{});
+      } catch(_) {}
+      if (nextMode === "focus") { fireConfetti(1400); bumpStreak("task"); toast("🎉 Pomodoro done! Take a well-deserved break."); }
+      else toast("☕ Break over — time to focus!");
+      POMO.mode = nextMode;
+      POMO.remaining = POMO[nextMode==="long"?"long":nextMode];
+    }
+    renderPomo();
+    if (POMO.remaining%30===0 || POMO.remaining<=10) {
+      document.title = POMO.mode==="focus" ? `🎯 ${fmtTime(POMO.remaining)} — Exam Mitra` : `☕ ${fmtTime(POMO.remaining)} — Exam Mitra`;
+    }
+  }, 1000);
+  renderPomo();
+}
+function resetPomo() {
+  if (POMO.interval) { clearInterval(POMO.interval); POMO.interval=null; }
+  POMO.mode = "focus"; POMO.remaining = POMO.focus; POMO.cycles = 0;
+  document.title = "Exam Mitra 📚 — AI Study Planner for JEE, NEET, UPSC, College & All Indian Exams";
+  renderPomo();
+}
+
+/* ---------- Adaptive remediation (called after grading if score < 100%) ---------- */
+async function requestRemediation(jobId, score, total, weakAreas, container) {
+  if (!weakAreas || !weakAreas.length) return;
+  if (score === total) { fireConfetti(2200); return; }
+  const pct = Math.round(score/total*100);
+  const card = document.createElement("div");
+  card.className = "remediation-card";
+  card.innerHTML = `
+    <h3>🧠 Personal tutor mode</h3>
+    <p class="remediation-diagnosis">You scored <b>${score}/${total} (${pct}%)</b>. I noticed a few weak spots. Want me to build a short focused revision plan with harder MCQs targeting exactly what you got wrong?</p>
+    <button class="btn-remediate" id="remediate-btn">✨ Yes — build my booster pack</button>
+  `;
+  container.appendChild(card);
+  document.getElementById("remediate-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("remediate-btn");
+    btn.disabled = true; btn.textContent = "Thinking like your personal tutor…";
+    try {
+      const r = await fetch(`/api/jobs/${jobId}/remediate`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ score, total, weak_areas: weakAreas }),
+      });
+      if (!r.ok) throw new Error("Tutor failed: " + r.status);
+      const pkg = await r.json();
+      renderRemediation(card, pkg);
+    } catch(e) {
+      btn.disabled = false; btn.textContent = "🔁 Try again";
+      toast("Tutor error: " + e.message);
+    }
+  });
+}
+function renderRemediation(card, pkg) {
+  const revisionHtml = (pkg.revision_days||[]).map(d => `
+    <div class="day-row" style="background:#fff;border-radius:12px;padding:10px 12px;margin:6px 0;">
+      <div class="day-badge" style="background:#10b981;color:#fff;">R${d.day||1}</div>
+      <div class="day-body" style="cursor:default;">
+        <h4 style="margin:0 0 4px;font-size:14px;">${esc(d.chapter)} <span style="color:var(--muted);font-weight:400;font-size:12px;">· ${d.hours}h</span></h4>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--text-2);">
+          ${(d.activities||[]).map(a=>`<li>${esc(a)}</li>`).join("")}
+        </ul>
+      </div>
+    </div>`).join("");
+  const boosterHtml = (pkg.booster_notes||[]).map(n => `
+    <div class="booster-note">
+      <h5>🔁 ${esc(n.chapter)} — Booster notes</h5>
+      ${n.summary ? `<p style="margin:0 0 8px;font-size:13px;color:#065f46;">${n.summary}</p>` : ""}
+      <ul style="margin:0 0 8px;padding-left:18px;font-size:13px;">
+        ${(n.key_concepts||[]).map(k=>`<li>${k}</li>`).join("")}
+      </ul>
+      ${(n.formulas_or_definitions||[]).length ? `<div style="display:flex;flex-direction:column;gap:6px;">
+        ${n.formulas_or_definitions.map(f=>`<div class="formula-item" style="padding:8px 12px;font-size:13.5px;">${f}</div>`).join("")}
+      </div>` : ""}
+      ${(n.common_mistakes||[]).length ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+        ${n.common_mistakes.map(m=>`<div class="mistake-item" style="padding:8px 12px;font-size:13px;">⚠️ ${m}</div>`).join("")}
+      </div>` : ""}
+    </div>`).join("");
+  const extraMcqHtml = (pkg.extra_mcqs||[]).length ? `
+    <div class="remediation-section-title">🎯 Harder MCQs on your weak spots</div>
+    <div id="remed-mcqs">
+      ${(pkg.extra_mcqs||[]).map((q,i)=>`
+        <div class="mcq" data-idx="R${i}" data-correct="${esc(q.correct_answer)}">
+          <div class="mcq-q"><b>Q${i+1}.</b> ${q.question}
+            <button class="speak-btn" onclick="speakText(this.parentElement.innerText)">🔊</button></div>
+          <div class="mcq-options">
+            ${(q.options||[]).map(o=>`<div class="mcq-option" data-label="${esc(o.label)}"><b>${esc(o.label)}.</b> ${o.text}</div>`).join("")}
+          </div>
+          <div class="mcq-explanation"><b>Explanation:</b> ${q.explanation||""}</div>
+        </div>`).join("")}
+    </div>
+    <button class="btn-accent" id="remed-grade-btn" style="margin-top:12px;">📊 Re-check these</button>
+    <div id="remed-grade-result"></div>` : "";
+  card.innerHTML = `
+    <h3>🧠 Adaptive booster pack ${pkg.round?`<small style="font-weight:400;color:#047857;">· round ${pkg.round}</small>`:""}</h3>
+    <p class="remediation-diagnosis">🔍 <b>Diagnosis:</b> ${esc(pkg.diagnosis||"")}</p>
+    <div class="remediation-section-title">📅 Your 2-day targeted revision</div>
+    ${revisionHtml}
+    ${boosterHtml}
+    ${extraMcqHtml}
+    <p style="margin-top:14px;color:#047857;font-style:italic;font-size:13px;">💪 ${esc(pkg.motivation||"")}</p>
+  `;
+  // Hook up MCQ interactions for remedial MCQs
+  const root2 = card;
+  root2.querySelectorAll(".mcq").forEach(mcq => {
+    mcq.querySelectorAll(".mcq-option").forEach(opt => {
+      opt.addEventListener("click", () => {
+        if (mcq.classList.contains("explained")) return;
+        mcq.querySelectorAll(".mcq-option").forEach(o=>o.classList.remove("selected"));
+        opt.classList.add("selected");
+      });
+    });
+  });
+  renderMathIn(card);
+  const rgb = document.getElementById("remed-grade-btn");
+  if (rgb) rgb.addEventListener("click", () => {
+    const answers = {};
+    root2.querySelectorAll(".mcq").forEach(mcq => {
+      const sel = mcq.querySelector(".mcq-option.selected");
+      if (sel) answers[mcq.dataset.idx] = sel.dataset.label;
+    });
+    let score=0, total=(pkg.extra_mcqs||[]).length;
+    root2.querySelectorAll(".mcq").forEach(mcq => {
+      const correct = mcq.dataset.correct;
+      const picked = answers[mcq.dataset.idx];
+      mcq.classList.add("explained");
+      mcq.querySelectorAll(".mcq-option").forEach(o => {
+        o.classList.add("locked");
+        if (o.dataset.label === correct) o.classList.add("correct");
+        if (o.dataset.label === picked && picked !== correct) o.classList.add("wrong");
+      });
+      if (picked === correct) score++;
+      renderMathIn(mcq.querySelector(".mcq-explanation"));
+    });
+    const pct = Math.round(score/total*100);
+    const res = document.getElementById("remed-grade-result");
+    let msg = pct>=80 ? "🌟 Excellent! You're improving fast!" : (pct>=50 ? "👍 Good progress — re-read the booster notes above." : "📌 Don't rush. Re-read the booster notes, re-watch the video, then try again.");
+    res.innerHTML = `<div class="grade-result" style="margin-top:12px;">
+      <div class="grade-score">🎯 ${score}/${total} (${pct}%)</div>
+      <p class="grade-msg">${msg}</p>
+    </div>`;
+    if (pct >= 80) fireConfetti(1600);
+    else if (score < total) {
+      // Another round!
+      const weak = [];
+      root2.querySelectorAll(".mcq").forEach(mcq => {
+        const picked = answers[mcq.dataset.idx];
+        if (picked !== mcq.dataset.correct) {
+          weak.push({ chapter: "(remedial)", topic: mcq.querySelector(".mcq-q")?.textContent?.slice(0,80)||"topic", feedback: "Missed remedial MCQ." });
+        }
+      });
+      if (weak.length) {
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "btn-remediate";
+        nextBtn.textContent = "🔁 One more booster round";
+        nextBtn.style.marginTop = "10px";
+        nextBtn.addEventListener("click", async () => {
+          nextBtn.disabled = true; nextBtn.textContent = "Building harder round…";
+          const r = await fetch(`/api/jobs/${jobId}/remediate`, {
+            method:"POST", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ score, total, weak_areas: weakAreas.concat(weak) }),
+          });
+          if (!r.ok) { nextBtn.disabled=false; nextBtn.textContent="🔁 Try again"; return; }
+          const p2 = await r.json();
+          const newCard = document.createElement("div");
+          newCard.className = "remediation-card";
+          card.parentNode.insertBefore(newCard, card.nextSibling);
+          renderRemediation(newCard, p2);
+          nextBtn.remove();
+        });
+        res.appendChild(nextBtn);
+      }
+    }
+  });
+}
+
+/* ---------- AI Tutor chat (floating) ---------- */
+let tutorJobId = null;
+let tutorHistory = [];
+let tutorChapter = "";
+
+function openTutor(jobId, chapterHint) {
+  tutorJobId = jobId;
+  tutorChapter = chapterHint || "";
+  const panel = document.getElementById("tutor-panel");
+  panel.classList.add("open");
+  document.getElementById("tutor-fab").classList.remove("pulse");
+  const body = panel.querySelector(".tutor-body");
+  if (body.children.length === 0) {
+    addTutorMsg("bot", `Namaste! 🙏 I'm your personal AI tutor. Ask me anything about <b>${esc(chapterHint||"your plan")}</b> — a concept, a formula, why something works, or even "solve this for me step by step". I'll explain in your language, with LaTeX math when needed.`);
+    const quick = panel.querySelector(".tutor-quick");
+    quick.innerHTML = [
+      "Explain this concept in simple words",
+      "Show me a step-by-step solved example",
+      "What's the common mistake students make here?",
+      "Give me a mnemonic / trick to remember this",
+    ].map(q=>`<button onclick="sendTutor(\`${esc(q.replace(/`/g,"'"))}\`); this.parentElement.innerHTML='';">${esc(q)}</button>`).join("");
+  }
+  setTimeout(() => document.getElementById("tutor-input").focus(), 250);
+}
+function closeTutor() { document.getElementById("tutor-panel").classList.remove("open"); }
+function addTutorMsg(who, text) {
+  const body = document.querySelector("#tutor-panel .tutor-body");
+  const div = document.createElement("div");
+  div.className = `tutor-msg ${who}`;
+  div.innerHTML = text;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  // Render KaTeX inside tutor messages
+  if (window.renderMathInElement && who === "bot") {
+    renderMathInElement(div, {
+      delimiters: [{left:"$$",right:"$$",display:true},{left:"$",right:"$",display:false},{left:"\\(",right:"\\)",display:false},{left:"\\[",right:"\\]",display:true}],
+      throwOnError: false,
+    });
+  }
+}
+async function sendTutor(overrideText) {
+  const input = document.getElementById("tutor-input");
+  const q = (overrideText || input.value || "").trim();
+  if (!q || !tutorJobId) return;
+  if (!overrideText) input.value = "";
+  addTutorMsg("user", esc(q));
+  tutorHistory.push("Student: " + q);
+  const typing = document.createElement("div");
+  typing.className = "tutor-typing";
+  typing.textContent = "Tutor is thinking…";
+  document.querySelector("#tutor-panel .tutor-body").appendChild(typing);
+  const sendBtn = document.querySelector(".tutor-send");
+  if (sendBtn) sendBtn.disabled = true;
+  try {
+    const r = await fetch(`/api/jobs/${tutorJobId}/tutor`, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ question: q, chapter: tutorChapter, history: tutorHistory.slice(-6) }),
+    });
+    if (!r.ok) throw new Error("Tutor error " + r.status);
+    const data = await r.json();
+    typing.remove();
+    // Render markdown-lite: bold **x**, code blocks, newlines
+    let ans = data.answer
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+      .replace(/`{3}([\s\S]*?)`{3}/g, (_,c)=>`<pre>${c}</pre>`)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\n/g, "<br>");
+    addTutorMsg("bot", ans);
+    tutorHistory.push("Tutor: " + data.answer.replace(/\n+/g," "));
+    if (tutorHistory.length > 20) tutorHistory = tutorHistory.slice(-12);
+  } catch(e) {
+    typing.remove();
+    addTutorMsg("bot", "<i>Sorry, I couldn't answer that right now. Try again shortly.</i>");
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+/* ---------- Voice read-aloud (Web Speech API, no server cost) ---------- */
+function speakText(text) {
+  if (!("speechSynthesis" in window)) { toast("Voice not supported in this browser."); return; }
+  window.speechSynthesis.cancel();
+  // Strip LaTeX for cleaner speech
+  const clean = text
+    .replace(/\$[^$]+\$/g, m => m.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "$1 over $2")
+                                .replace(/\\[a-zA-Z]+/g, " ")
+                                .replace(/[{}_^\\]/g," "))
+    .replace(/\s+/g," ").trim();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.rate = 1.0; u.pitch = 1.0;
+  // Try to match language
+  const saved = localStorage.getItem("em_lang") || "en";
+  u.lang = saved === "hi" ? "hi-IN" : (saved === "hinglish" ? "hi-IN" : "en-IN");
+  // Prefer Indian voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang === u.lang) || voices.find(v => v.lang.startsWith("en"));
+  if (preferred) u.voice = preferred;
+  window.speechSynthesis.speak(u);
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+document.addEventListener("keydown", (e) => {
+  // Ignore while typing in inputs
+  if (e.target.matches("input,textarea,select,[contenteditable]")) return;
+  if (e.key === "/" ) { /* '/' handled below */ }
+  // 'F' or 'f' to flip flashcards (when results visible)
+  if (e.key === "f" || e.key === "F") {
+    const fc = document.querySelector(".flashcard:not(.flipped)");
+    if (fc) { fc.classList.add("flipped"); e.preventDefault(); return; }
+    const fc2 = document.querySelector(".flashcard.flipped");
+    if (fc2) { fc2.classList.remove("flipped"); e.preventDefault(); return; }
+  }
+  // 'T' opens tutor
+  if (e.key === "t" || e.key === "T") {
+    const fab = document.getElementById("tutor-fab");
+    if (fab && fab.style.display !== "none") { fab.click(); e.preventDefault(); }
+  }
+  // '?' shows shortcut help
+  if (e.key === "?") {
+    toast("⌨️ Shortcuts: F = flip flashcard · T = AI Tutor · 1-4 = answer MCQ · Esc = close tutor");
+    e.preventDefault();
+  }
+});
+// MCQ keyboard: 1/2/3/4 or A/B/C/D to pick options in the first unanswered MCQ
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input,textarea,select,[contenteditable]")) return;
+  const key = e.key.toUpperCase();
+  const map = {"1":"A","2":"B","3":"C","4":"D","A":"A","B":"B","C":"C","D":"D"};
+  if (!map[key]) return;
+  const mcq = document.querySelector(".mcq:not(.explained)");
+  if (!mcq) return;
+  const opt = mcq.querySelector(`.mcq-option[data-label="${map[key]}"]`);
+  if (opt) { opt.click(); e.preventDefault(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeTutor();
+});
 
 /* ---- On load: auto-load ?job=XXX ---- */
 window.addEventListener("DOMContentLoaded", () => {
+  ensureTutorDOMElements();
+  // Ensure voices are loaded (Chrome lazy-loads them)
+  if ("speechSynthesis" in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); }
   const params = new URLSearchParams(location.search);
   const existingJob = params.get("job");
   if (existingJob) {

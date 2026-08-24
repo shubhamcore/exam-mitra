@@ -36,6 +36,7 @@ from services.db import store
 # Agents
 from agents import (
     parse_syllabus, plan_study, gather_resources, generate_content, grade_answers,
+    build_remediation, ask_tutor,
 )
 
 logging.basicConfig(
@@ -44,7 +45,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("exam_mitra")
 
-app = FastAPI(title="Exam Mitra 📚", version="2.1.0")
+app = FastAPI(title="Exam Mitra 📚", version="2.2.0")
 
 # ---------- Security middleware ----------
 
@@ -142,6 +143,25 @@ class StartRequest(BaseModel):
 
 class GradeRequest(BaseModel):
     answers: Dict[str, str]
+
+
+class RemediateRequest(BaseModel):
+    """After grading, frontend sends the weak areas + score and we build a remediation package."""
+    score: int = Field(..., ge=0)
+    total: int = Field(..., ge=1)
+    weak_areas: List[dict] = Field(default_factory=list)
+
+
+class TutorRequest(BaseModel):
+    """Ask the in-context tutor a question."""
+    question: str = Field(..., min_length=2, max_length=2000)
+    chapter: str = Field("", max_length=200)
+    history: List[str] = Field(default_factory=list)
+
+
+# Remediation packages per job, keyed by round number (1 = first remediation, etc.)
+# Stored in-memory only (share page doesn't need them; persistence via Firestore is fine as bonus later).
+_remediations: Dict[str, List[dict]] = defaultdict(list)
 
 
 # ---------- Background job runner ----------
@@ -414,6 +434,73 @@ def grade_job(job_id: str, req: GradeRequest):
         "weak_areas": [w.model_dump() for w in result.weak_areas],
         "encouragement": result.encouragement,
     }
+
+
+def _run_sync(fn, *args):
+    """Run a sync agent call on the default threadpool so we don't block the event loop."""
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(fn, *args).result()
+
+
+@app.post("/api/jobs/{job_id}/remediate")
+async def remediate_job(job_id: str, req: RemediateRequest):
+    """[Adaptive Tutor] Build a focused revision mini-plan + booster notes + extra MCQs for weak chapters.
+
+    This is the CLOSED-LOOP wow feature: after the student tests and fails, the agent doesn't just
+    say "try again" — it diagnoses root misconceptions and writes fresh, targeted content.
+    """
+    state = store.get(job_id)
+    if not state:
+        raise HTTPException(404, "Job not found")
+    if state.current_step < 7:
+        raise HTTPException(400, "Plan is not yet complete — finish generating first")
+
+    from models.schemas import WeakArea
+    weak_areas = [WeakArea(**w) for w in req.weak_areas]
+    if not weak_areas:
+        raise HTTPException(400, "No weak areas provided — you scored perfectly! 🎉")
+
+    # Heavy LLM work goes to threadpool
+    loop = asyncio.get_running_loop()
+    pkg = await loop.run_in_executor(
+        None,
+        lambda: build_remediation(state, weak_areas, req.score, req.total),
+    )
+    dumped = pkg.model_dump(mode="json")
+    _remediations[job_id].append(dumped)
+    return {
+        "round": len(_remediations[job_id]),
+        **dumped,
+    }
+
+
+@app.get("/api/jobs/{job_id}/remediations")
+def list_remediations(job_id: str):
+    """Return all prior remediation rounds for this job (so refreshes/shares keep them)."""
+    if not store.get(job_id):
+        raise HTTPException(404, "Job not found")
+    return {"rounds": _remediations.get(job_id, [])}
+
+
+@app.post("/api/jobs/{job_id}/tutor")
+async def tutor_chat(job_id: str, req: TutorRequest):
+    """Ask the AI Tutor a free-text question about this study plan."""
+    state = store.get(job_id)
+    if not state:
+        raise HTTPException(404, "Job not found")
+    if state.current_step < 7:
+        raise HTTPException(400, "Wait for plan to finish before asking the tutor")
+    q = req.question.strip()
+    if not q:
+        raise HTTPException(400, "Empty question")
+
+    loop = asyncio.get_running_loop()
+    answer = await loop.run_in_executor(
+        None,
+        lambda: ask_tutor(state, q, req.chapter, req.history),
+    )
+    return {"answer": answer}
 
 
 # ---------- Static UI + shareable plan page ----------
